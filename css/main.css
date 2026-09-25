@@ -818,12 +818,15 @@ html.announce-off .announce{ display:none; }
     --tubes:calc(var(--rw) * .412 - (var(--rw) - var(--bw)) * .88 - 32px);
   }
   .hero-layer--type{ justify-content:flex-start; }
+  /* client: headline a little further left (the whole of "origin" clears the tube), second line a little lower */
+  .hero-layer--type .hero-depth{ padding-left:calc(var(--gutter) * .55); }
+  .hero-line + .hero-line{ margin-top:.12em; }
   /* the paragraph stays on the free wall too, clear of the first tube */
   .hero-copy .hero-lede{ max-width:min(34ch, calc(var(--tubes) - var(--gutter) - 32px)); }
   .hero-title{
     /* width: line 1 ("From origin", ≈5em) ends ≈0.35em past the tubes' edge;
        height: short windows keep clear space above the paragraph and buttons */
-    font-size:clamp(56px, min(calc((var(--tubes) - var(--gutter)) / 4.65), calc((100cqh - 330px) / 2.2)), 232px);
+    font-size:clamp(56px, min(calc((var(--tubes) - var(--gutter)) / 4.65), calc((100cqh - 330px) / 2.32)), 232px);
     text-align:left;
   }
 }
