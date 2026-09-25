@@ -803,8 +803,8 @@ html.announce-off .announce{ display:none; }
 .hero-title{ text-align:center; }
 
 /* Layered hero (desktop): the headline sits on the free wall left of the products, left-aligned,
-   sized so only the end of "origin" tucks behind the first tube (the type stays behind the products,
-   and stays readable). Its size repeats the images' cover + object-position maths with container
+   sized so "From origin" ends just before the first tube (the type layer stays behind the products,
+   but no letter is hidden). Its size repeats the images' cover + object-position maths with container
    units, so it tracks the tubes at every window shape without JS or layout shift:
      rendered width  --rw = max(box width, box height × 2400/1400)   (the image box bleeds 32px each side)
      tubes' left edge     = 41.2% of --rw − the 88% horizontal crop − the 32px bleed */
@@ -824,9 +824,9 @@ html.announce-off .announce{ display:none; }
   /* the paragraph stays on the free wall too, clear of the first tube */
   .hero-copy .hero-lede{ max-width:min(34ch, calc(var(--tubes) - var(--gutter) - 32px)); }
   .hero-title{
-    /* width: line 1 ("From origin", ≈5em) ends ≈0.35em past the tubes' edge;
-       height: short windows keep clear space above the paragraph and buttons */
-    font-size:clamp(56px, min(calc((var(--tubes) - var(--gutter)) / 4.65), calc((100cqh - 330px) / 2.32)), 232px);
+    /* width: line 1 ("From origin", ≈5em) ends ≈0.15em before the first tube (client: the whole word
+       stays visible); height: short windows keep clear space above the paragraph and buttons */
+    font-size:clamp(56px, min(calc((var(--tubes) - var(--gutter) * .55) / 5.15), calc((100cqh - 330px) / 2.32)), 232px);
     text-align:left;
   }
 }
