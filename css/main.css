@@ -1744,8 +1744,6 @@ html.reveal-on [data-reveal]:not(.is-revealed) [data-reveal-inner]{ transform:sc
 .stars{ display:inline-flex; gap:2px; color:var(--black); }
 .stars .icon{ width:13px; height:13px; stroke-width:1.25; }
 .rv-date{ margin:0; }
-.rv-badge{ display:inline-flex; align-items:center; gap:4px; font:500 12px/1 var(--font-body); color:var(--success); }
-.rv-badge .icon{ width:14px; height:14px; }
 .rv-title{ font:600 15px/1.4 var(--font-body); color:var(--black); margin:0 0 6px; }
 .rv-text{ font-size:15px; margin:0; }
 .rv-empty{ padding:32px 0; color:var(--graphite); }

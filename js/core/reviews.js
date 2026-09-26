@@ -162,7 +162,8 @@ export function initReviews(p, root) {
           <span class="rv-name">${esc(r.name || "Anonymous")}</span>
           ${stars(r.rating)}<span class="visually-hidden">${r.rating} out of 5 stars</span>
           <span class="rv-date coords">${r.own && Date.now() - Date.parse(r.date) < 864e5 ? "Just now" : esc(formatDate(r.date.slice(0, 10)))}</span>
-          ${r.verified ? `<span class="rv-badge">${icon("badge-check")} Verified buyer</span>` : ""}
+          ${/* No "Verified buyer" badge: only a real, verified purchase may carry one. TODO: show it when
+               the review backend confirms the order (never on sample or unverified reviews). */ ""}
         </div>
         ${r.title ? `<h3 class="rv-title">${esc(r.title)}</h3>` : ""}
         ${r.text ? `<p class="rv-text">${esc(r.text)}</p>` : ""}
@@ -229,7 +230,6 @@ export function initReviews(p, root) {
       date: new Date().toISOString(),
       title: String(data.get("title") || "").trim().slice(0, 80),
       text: String(data.get("text") || "").trim().slice(0, 1200),
-      verified: false,
     };
     saveReview(p.id, review);   // TODO: POST to the review backend; publish after moderation
     form.reset();

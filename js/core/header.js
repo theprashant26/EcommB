@@ -247,8 +247,10 @@ function initDropdowns() {
     if (!rendered.has(name)) { renderPanel(name, $("[data-dd-body]", panel)); rendered.add(name); }
     if (current === trigger) { if (focus) focusables(panel)[0]?.focus(); return; }
 
-    const switching = !!current;
-    if (current) closeNow(current);
+    // The menu area is already showing (another panel open, or one still fading out): switch
+    // instantly instead of replaying the full opening.
+    const switching = !!current || (veil && !veil.hidden);
+    settle(trigger);
     current = trigger;
     panel.hidden = false;
     trigger.setAttribute("aria-expanded", "true");
@@ -256,7 +258,7 @@ function initDropdowns() {
     if (veil) veil.hidden = false;
 
     if (animate()) {
-      gsap.killTweensOf([panel, veil]);
+      if (switching && veil) gsap.set(veil, { opacity: 1 });
       if (!switching) {
         gsap.fromTo(panel, { clipPath: "inset(0 0 100% 0)", opacity: 0 },
           { clipPath: "inset(0 0 0% 0)", opacity: 1, duration: 0.45, ease: "power3.out", clearProps: "clipPath" });
@@ -270,11 +272,22 @@ function initDropdowns() {
     if (focus) focusables(panel)[0]?.focus();
   }
 
-  // Hide one panel at once (used when switching between dropdowns).
-  function closeNow(trigger) {
-    const panel = panelOf(trigger);
-    trigger.setAttribute("aria-expanded", "false");
-    if (panel) { if (hasGSAP()) gsap.killTweensOf(panel); panel.hidden = true; }
+  /**
+   * Before a panel opens: stop every running menu animation (panels, their columns, the veil)
+   * and hide every other panel at once, so two panels can never overlap or stay half-visible,
+   * however fast the pointer moves between tabs.
+   */
+  function settle(except) {
+    triggers.forEach((t) => {
+      const p = panelOf(t);
+      if (!p) return;
+      if (hasGSAP()) {
+        gsap.killTweensOf([p, ...$$("[data-dd-col]", p)]);
+        gsap.set([p, ...$$("[data-dd-col]", p)], { clearProps: "opacity,clipPath,transform" });
+      }
+      if (t !== except) { p.hidden = true; t.setAttribute("aria-expanded", "false"); }
+    });
+    if (hasGSAP() && veil) gsap.killTweensOf(veil);
   }
 
   function close({ returnFocus = false } = {}) {
@@ -286,12 +299,15 @@ function initDropdowns() {
     current = null;
     trigger.setAttribute("aria-expanded", "false");
     top.classList.remove("is-mega-open");
+    // If another panel opened meanwhile, settle() has already hidden this one and killed this fade.
     const done = () => {
-      if (current === null) { panel.hidden = true; if (veil) veil.hidden = true; }
+      panel.hidden = true;
+      if (hasGSAP()) gsap.set(panel, { clearProps: "opacity" });
+      if (current === null && veil) { veil.hidden = true; if (hasGSAP()) gsap.set(veil, { clearProps: "opacity" }); }
     };
     if (animate()) {
       gsap.killTweensOf([panel, veil]);
-      gsap.to(panel, { opacity: 0, duration: 0.2, ease: "none", onComplete: () => { gsap.set(panel, { opacity: 1 }); done(); } });
+      gsap.to(panel, { opacity: 0, duration: 0.2, ease: "none", onComplete: done });
       gsap.to(veil, { opacity: 0, duration: 0.2, ease: "none" });
     } else done();
     if (returnFocus) trigger.focus();
