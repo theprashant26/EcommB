@@ -7,8 +7,8 @@ and modulepreload tags are written by tools/sync-partials.py).
 
     python tools/build-js.py        # then: python tools/sync-partials.py
 
-Run it after any change under js/, and commit dist/ with the sources. Dev tool only. Needs Node
-(npx, or NODE_MODULES=<dir with esbuild installed> and NODE=<node binary>).
+Run it after any change under js/ (or `npm run build`), and commit dist/ with the sources. Dev tool
+only: it uses esbuild from node_modules (`npm ci` installs the pinned version).
 """
 import os
 import shutil
@@ -21,16 +21,17 @@ SRC = ROOT / "js"
 OUT = ROOT / "dist" / "js"
 
 
+def node_bin(pkg, bin_rel):
+    """[node, <the package's CLI>] from this project's node_modules (npm ci installs the pinned versions)."""
+    node = shutil.which("node")
+    cli = ROOT / "node_modules" / pkg / bin_rel
+    if not node or not cli.exists():
+        sys.exit(f"{pkg} is missing: install Node (LTS) and run `npm ci` in the project folder first")
+    return [node, str(cli)]
+
+
 def esbuild(args):
-    mods = os.environ.get("NODE_MODULES")
-    if mods:
-        cmd = [os.environ.get("NODE", "node"), str(Path(mods) / "esbuild" / "bin" / "esbuild"), *args]
-    else:
-        npx = shutil.which("npx") or shutil.which("npx.cmd")
-        if not npx:
-            sys.exit("Node is needed (npx), or set NODE_MODULES and NODE")
-        cmd = [npx, "--yes", "esbuild@0.25", *args]
-    subprocess.run(cmd, check=True, cwd=ROOT)
+    subprocess.run([*node_bin("esbuild", "bin/esbuild"), *args], check=True, cwd=ROOT)
 
 
 def main():

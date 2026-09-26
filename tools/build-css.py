@@ -13,9 +13,9 @@ Update 04 (speed): the site's CSS, built.
     python tools/build-css.py              # everything
     python tools/build-css.py --no-critical
 
-Dev tool only (not needed on the server). Needs Node (npx, or NODE_MODULES=<dir with purgecss and
-esbuild installed> and NODE=<node binary>) and Python Playwright with Chrome. Run it after any
-change to css/main.css, css/fonts.css or a page's first screen, then commit the output.
+Dev tool only (not needed on the server). Run through `npm run build` (package.json), or on its own
+after `npm ci`: it uses esbuild and PurgeCSS from node_modules, and Python Playwright with Chrome.
+Run it after any change to css/main.css, css/fonts.css or a page's first screen, then commit the output.
 """
 import http.server
 import os
@@ -60,16 +60,17 @@ SAFELIST = {
 }
 
 
+def node_bin(pkg, bin_rel):
+    """[node, <the package's CLI>] from this project's node_modules (npm ci installs the pinned versions)."""
+    node = shutil.which("node")
+    cli = ROOT / "node_modules" / pkg / bin_rel
+    if not node or not cli.exists():
+        sys.exit(f"{pkg} is missing: install Node (LTS) and run `npm ci` in the project folder first")
+    return [node, str(cli)]
+
+
 def node_tool(pkg, bin_rel, args):
-    mods = os.environ.get("NODE_MODULES")
-    if mods:
-        cmd = [os.environ.get("NODE", "node"), str(Path(mods) / pkg / bin_rel), *args]
-    else:
-        npx = shutil.which("npx") or shutil.which("npx.cmd")
-        if not npx:
-            sys.exit("Node is needed (npx), or set NODE_MODULES and NODE")
-        cmd = [npx, "--yes", {"purgecss": "purgecss@6", "esbuild": "esbuild@0.25"}[pkg], *args]
-    subprocess.run(cmd, check=True, cwd=ROOT)
+    subprocess.run([*node_bin(pkg, bin_rel), *args], check=True, cwd=ROOT)
 
 
 def minify(src_text, suffix=".css"):
@@ -88,8 +89,15 @@ def build_site_css():
         conf = Path(d) / "purgecss.config.cjs"
         out = Path(d) / "out"
         greedy = ", ".join(f"/{g}/" for g in SAFELIST["greedy"])
+        # The pages without their inline critical CSS: what the last build inlined must not decide what this one
+        # keeps (the build gives the same output however often it runs).
+        pages = Path(d) / "pages"
+        pages.mkdir()
+        for page in ROOT.glob("*.html"):
+            html = re.sub(r'<style id="critical-css">.*?</style>', "", page.read_text(encoding="utf-8"), flags=re.S)
+            (pages / page.name).write_text(html, encoding="utf-8")
         conf.write_text(
-            "module.exports = { content: ['*.html', 'js/**/*.js'], css: [" + repr(BOOTSTRAP.relative_to(ROOT).as_posix()) + "],"
+            "module.exports = { content: [" + repr(pages.as_posix() + "/*.html") + ", 'js/**/*.js'], css: [" + repr(BOOTSTRAP.relative_to(ROOT).as_posix()) + "],"
             f" safelist: {{ standard: {SAFELIST['standard']!r}, greedy: [{greedy}] }}, output: {repr(str(out).replace(chr(92), '/'))} }};",
             encoding="utf-8")
         (out / BOOTSTRAP.relative_to(ROOT).parent).mkdir(parents=True)   # PurgeCSS writes to out/<css path>
@@ -97,10 +105,11 @@ def build_site_css():
         purged = next(out.rglob("*.css")).read_text(encoding="utf-8")
     # Bootstrap's own sourceMappingURL comment points at a file that isn't here.
     purged = re.sub(r"/\*# sourceMappingURL=.*?\*/", "", purged)
+    purged = re.sub(r'@charset "[^"]*";', "", purged)        # only valid first in a file; the merged file is UTF-8
     src = "\n".join([(CSS / "fonts.css").read_text(encoding="utf-8"), purged, (CSS / "main.css").read_text(encoding="utf-8")])
     css = minify(src)
     (CSS / "site.min.css").write_text(css + "\n", encoding="utf-8", newline="\n")
-    print(f"css/site.min.css: {len(css) / 1024:.1f} KB (Bootstrap {len(BOOTSTRAP.read_text(encoding='utf-8')) / 1024:.0f} → {len(purged) / 1024:.0f} KB)")
+    print(f"css/site.min.css: {len(css) / 1024:.1f} KB (Bootstrap {len(BOOTSTRAP.read_text(encoding='utf-8')) / 1024:.0f} -> {len(purged) / 1024:.0f} KB)")
 
 
 def head_block(critical=""):

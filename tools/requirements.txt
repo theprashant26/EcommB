@@ -1,0 +1,6 @@
+# Python packages the build uses (npm run build calls these scripts):
+# Pillow for tools/make-image-sizes.py, Playwright (with Chrome) for tools/build-css.py.
+#   python -m pip install -r tools/requirements.txt
+#   python -m playwright install chrome     # only if Google Chrome is not installed
+pillow==9.5.0
+playwright==1.61.0

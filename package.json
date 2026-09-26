@@ -1,0 +1,20 @@
+{
+  "name": "jiai-life-maison",
+  "private": true,
+  "description": "Jiai Life, Design B (Maison). A static site: the build writes files that are committed; the server needs nothing.",
+  "scripts": {
+    "build": "npm run build:images && npm run build:js && npm run build:sync && npm run build:css && npm run build:sync && npm run check",
+    "build:images": "python tools/make-image-sizes.py",
+    "build:js": "python tools/build-js.py",
+    "build:sync": "python tools/sync-partials.py",
+    "build:css": "python tools/build-css.py",
+    "check": "python tools/sync-partials.py --check"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12",
+    "purgecss": "6.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -101,13 +101,36 @@ export function initMotion(setup) {
   mm.add(MQ, (ctx) => {
     const c = ctx.conditions;
     if (!c.reduce && window.ScrollSmoother && smoothCapable()) {
+      // No first-scroll jump: a ScrollTrigger.refresh() while the smoother is easing restarts the ease from
+      // near the top (the page jumps back, then glides). Refreshes cluster right after creation (load, fonts,
+      // and on Home the sections' pins, set up on the first scroll, often while the smoother is created
+      // mid-scroll). So the smoother starts with no easing (smooth 0.01) at the current position, and the easing
+      // comes on once refreshes have been quiet for 400 ms and the page is at rest (never inside an input
+      // event, which would apply that scroll twice). Until then scrolling is plain and continuous; from then
+      // on it is the usual smooth 1.1.
       smoother = ScrollSmoother.create({
         wrapper: "#smooth-wrapper",
         content: "#smooth-content",
-        smooth: 1.1,
+        smooth: 1.1,          // created eased, then eased almost to nothing (created at 0, a later smooth(1.1) scrolls twice as far)
         effects: true,
         smoothTouch: false,
       });
+      const s = smoother;
+      s.smooth(0.01);   // "no easing" (0 itself stops the smoother moving the content)
+      if (window.scrollY > 0) s.scrollTop(window.scrollY);
+      let lastRefresh = performance.now();
+      let lastY = window.scrollY;
+      const onRefresh = () => { lastRefresh = performance.now(); };
+      ScrollTrigger.addEventListener("refresh", onRefresh);
+      const settle = () => {
+        if (s !== smoother) return ScrollTrigger.removeEventListener("refresh", onRefresh);
+        const still = window.scrollY === lastY;
+        lastY = window.scrollY;
+        if (performance.now() - lastRefresh < 400 || !still) { setTimeout(settle, 150); return; }
+        ScrollTrigger.removeEventListener("refresh", onRefresh);
+        s.smooth(1.1);
+      };
+      setTimeout(settle, 400);
       if (pauseReasons.size) smoother.paused(true);
       // On desktop ScrollSmoother fixes the wrapper; .is-fixed lets Bootstrap
       // compensate for the scrollbar it hides while an offcanvas is open.
