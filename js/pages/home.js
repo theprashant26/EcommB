@@ -21,7 +21,9 @@ import { HERO } from "../data/hero.js";
 import { CATEGORIES } from "../data/categories.js";
 import { visibleBrands, brandURL } from "../data/brands.js";
 import { ORIGINS } from "../data/origins.js";
-import { esc, formatCoords, finePointer, hasGSAP, icon, imageSize, reducedMotion, $, $$ } from "../core/format.js";
+import { esc, formatCoords, finePointer, hasGSAP, icon, imageSize, reducedMotion, $, $$, cssReady } from "../core/format.js";
+
+await cssReady();   // Update 04: the full stylesheet arrives without blocking; render once it applies
 
 const html = document.documentElement;
 

@@ -20,7 +20,9 @@ import { plinthSetHTML } from "../core/plinth.js";
 import { PRODUCTS, CATEGORY_LABELS, RITUAL_LABELS, isCombo } from "../data/products.js";
 import { visibleBrands, brandURL } from "../data/brands.js";
 import { ORIGINS } from "../data/origins.js";
-import { esc, formatCoords, reducedMotion, hasGSAP, $, $$ } from "../core/format.js";
+import { esc, formatCoords, reducedMotion, hasGSAP, $, $$, cssReady } from "../core/format.js";
+
+await cssReady();   // Update 04: the full stylesheet arrives without blocking; render once it applies
 
 initHeader();
 initBag();

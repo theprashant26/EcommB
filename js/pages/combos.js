@@ -12,7 +12,9 @@ import { initSearch } from "../core/search.js";
 import { initMotion, splitLines } from "../core/motion.js";
 import { cardHTML } from "../core/cards.js";
 import { COMBOS } from "../data/products.js";
-import { $, $$ } from "../core/format.js";
+import { $, $$, cssReady } from "../core/format.js";
+
+await cssReady();   // Update 04: the full stylesheet arrives without blocking; render once it applies
 
 initHeader();
 initBag();

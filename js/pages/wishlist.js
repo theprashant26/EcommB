@@ -12,8 +12,10 @@ import { initSearch } from "../core/search.js";
 import { initMotion } from "../core/motion.js";
 import { cardHTML } from "../core/cards.js";
 import { getProduct } from "../data/products.js";
-import { $ } from "../core/format.js";
+import { $, cssReady } from "../core/format.js";
 import { toast } from "../core/toast.js";
+
+await cssReady();   // Update 04: the full stylesheet arrives without blocking; render once it applies
 
 initHeader();
 initBag();

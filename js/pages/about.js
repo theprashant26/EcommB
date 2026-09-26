@@ -10,7 +10,9 @@ import { initWishlist } from "../core/wishlist.js";
 import { initReveals } from "../core/reveal.js";
 import { initSearch } from "../core/search.js";
 import { initMotion, splitLines } from "../core/motion.js";
-import { $, $$ } from "../core/format.js";
+import { $, $$, cssReady } from "../core/format.js";
+
+await cssReady();   // Update 04: the full stylesheet arrives without blocking; render once it applies
 
 initHeader();
 initBag();

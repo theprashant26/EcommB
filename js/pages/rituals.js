@@ -15,7 +15,9 @@ import { initMotion, splitLines } from "../core/motion.js";
 import { cardHTML } from "../core/cards.js";
 import { ritualRowsHTML, ritualRowsMotion } from "../core/ritual-rows.js";
 import { PRODUCTS, RITUAL_LABELS } from "../data/products.js";
-import { esc, icon, $, $$ } from "../core/format.js";
+import { esc, icon, $, $$, cssReady } from "../core/format.js";
+
+await cssReady();   // Update 04: the full stylesheet arrives without blocking; render once it applies
 
 initHeader();
 initBag();

@@ -28,8 +28,8 @@
   --route:#B5473A;        /* consumed by map/routes.svg; same red as --origin */
 
   /* type (Update 02 §2) */
-  --font-display:"Cormorant Garamond", "Cormorant", Georgia, serif;   /* headings, the giant hero type, brand names */
-  --font-body:"Manrope", "Helvetica Neue", Arial, sans-serif;          /* body, UI, buttons, prices, coordinates */
+  --font-display:"Cormorant Garamond", "Cormorant Garamond Fallback", "Cormorant", Georgia, serif;   /* headings, the giant hero type, brand names */
+  --font-body:"Manrope", "Manrope Fallback", "Helvetica Neue", Arial, sans-serif;          /* body, UI, buttons, prices, coordinates */
 
   /* spacing scale: 4 8 12 16 24 32 48 64 96 128 */
   --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --s8:64px; --s9:96px; --s10:128px;

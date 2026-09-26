@@ -30,7 +30,9 @@ import { CONFIG } from "../data/config.js";
 import { PRODUCTS, COMBOS, getProduct, productURL, sizesOf, isCombo, comboItems, comboWorth, combosWith, brandNameOf } from "../data/products.js";
 import { getBrand, brandURL } from "../data/brands.js";
 import { ORIGINS, BATCHES, ARRIVAL_ORIGIN_ID } from "../data/origins.js";
-import { esc, formatPrice, formatCoords, imageSize, icon, priceHTML, reducedMotion, $, $$ } from "../core/format.js";
+import { esc, formatPrice, formatCoords, imageSize, icon, priceHTML, reducedMotion, $, $$, cssReady } from "../core/format.js";
+
+await cssReady();   // Update 04: the full stylesheet arrives without blocking; render once it applies
 
 initHeader();
 initBag();

@@ -19,7 +19,9 @@ import { createMap3d } from "../core/map3d.js";
 import { ORIGINS, BATCHES, DEFAULT_BATCH } from "../data/origins.js";
 import { getProduct, productURL } from "../data/products.js";
 import { getBrand } from "../data/brands.js";
-import { esc, formatCoords, formatDate, $, $$ } from "../core/format.js";
+import { esc, formatCoords, formatDate, $, $$, cssReady } from "../core/format.js";
+
+await cssReady();   // Update 04: the full stylesheet arrives without blocking; render once it applies
 
 initHeader();
 initBag();

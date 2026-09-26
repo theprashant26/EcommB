@@ -21,7 +21,9 @@ import { plinthSetHTML } from "../core/plinth.js";
 import { productsByBrand, combosForBrand } from "../data/products.js";
 import { getBrand, visibleBrands, brandURL } from "../data/brands.js";
 import { ORIGINS, BATCHES, ARRIVAL_ORIGIN_ID } from "../data/origins.js";
-import { esc, formatCoords, icon, $, $$ } from "../core/format.js";
+import { esc, formatCoords, icon, $, $$, cssReady } from "../core/format.js";
+
+await cssReady();   // Update 04: the full stylesheet arrives without blocking; render once it applies
 
 initHeader();
 initBag();

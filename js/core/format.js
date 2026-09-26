@@ -125,6 +125,21 @@ export function imageFocus(src = "") {
   return hit ? hit[1] : { cx: 0.5, top: 0.04, base: 0.96 };
 }
 
+/**
+ * Resolves once css/site.min.css is applied (Update 04: it loads without blocking the first paint,
+ * which the inline critical CSS covers). Pages await it before rendering or measuring anything,
+ * so nothing is laid out unstyled. Gives up after 8 s (a failed stylesheet must not stop the page).
+ */
+export function cssReady() {
+  const applied = () => [...document.styleSheets].some((s) => (s.href || "").includes("css/site.min.css"));
+  if (applied() || !document.querySelector('link[href*="css/site.min.css"]')) return Promise.resolve();
+  return new Promise((resolve) => {
+    const t0 = performance.now();
+    const check = () => (applied() || performance.now() - t0 > 8000 ? resolve() : setTimeout(check, 16));
+    check();
+  });
+}
+
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
