@@ -228,7 +228,8 @@ site:
 - [x] **3 · Less startup JavaScript:** SplitText, DrawSVG and Flip load only where and when used; ScrollSmoother only
   on desktops with a fine pointer (never on touch devices). Home already builds everything below the fold on the
   first scroll. Then PAGE BOOT: on pages with the LCP in the HTML, no script or stylesheet is fetched until it has
-  painted.
+  painted; shop's first two cards are in the HTML (written by `tools/build-css.py` with the site's own `cardHTML`),
+  so it can do the same.
 - [x] **4 · Right-sized images:** width and height copies with `srcset`/`sizes`, 180 px thumbnails wherever images
   show small (the combo product page went from ≈ 780 KB to ≈ 335 KB). Only the LCP image is `fetchpriority="high"`.
 - [x] **5 · Small wins:** minified JS (`dist/js/`) and CSS; the only preconnect left is jsDelivr (GSAP); no file is
@@ -257,36 +258,34 @@ Automated in Chrome and WebKit (Playwright), on a local server with gzip as on B
 
 ## Speed
 
-Measured in Chrome with Lighthouse's mobile throttling (4× CPU, 150 ms RTT, 1.6 Mbps) and gzip on; medians of three
-runs. The development machine was shared with other workloads, so single runs vary. Lighthouse itself (Node) was not
-available here: run it (or PageSpeed Insights) on the live URL before launch.
+Lighthouse 12, mobile, default (simulated) throttling, on the live GitHub Pages URLs; medians of three runs
+(`npx lighthouse@12 <URL> --only-categories=performance --form-factor=mobile`).
 
-| Page | LCP | TBT | CLS |
-|---|---|---|---|
-| Home | ≈ 2.8 s | ≈ 10–20 ms | 0 |
-| Shop | ≈ 2.6 s | ≈ 0–90 ms | 0 |
-| Product (cleanser / L’Arrivé / body lotion) | ≈ 2.2 s / 2.2 s / 2.3 s | ≈ 75–95 ms | 0 |
-| Combo product (The Complete Ritual) | ≈ 2.5 s | ≈ 130–145 ms | 0 |
-| Combos | ≈ 2.1 s | ≈ 55 ms | 0 |
-| Brand | ≈ 2.3 s | ≈ 210 ms | ≈ 0.003 |
-| Origin (QR landing) | ≈ 2.2–2.4 s | ≈ 110–170 ms | ≈ 0.02 |
-| About | ≈ 1.9 s | ≈ 80 ms | 0 |
+| Page | Before Update 04 (`2e7ed7f`) | After Update 04 |
+|---|---|---|
+| Home | 73 · LCP 4.6 s · TBT 203 ms · CLS 0 · FCP 3.0 s | **100** · LCP 1.7 s · TBT 14 ms · CLS 0 · FCP 0.9 s |
+| Shop | 66 · LCP 4.9 s · TBT 314 ms · CLS 0 · FCP 3.2 s | **100** · LCP 1.5 s · TBT 8 ms · CLS 0 · FCP 0.9 s |
+| Product (Body Lotion) | 72 · LCP 4.3 s · TBT 206 ms · CLS 0 · FCP 3.2 s | **100** · LCP 1.4 s · TBT 0 ms · CLS 0 · FCP 0.9 s |
+| Combos | 77 · LCP 4.2 s · TBT 100 ms · CLS 0 · FCP 3.0 s | **100** · LCP 1.5 s · TBT 0 ms · CLS 0 · FCP 0.9 s |
+| Combo product page | 73 · LCP 4.5 s · TBT 155 ms · CLS 0 · FCP 3.2 s | **100** · LCP 1.5 s · TBT 0 ms · CLS 0 · FCP 0.9 s |
 
-Home, shop, product and combos re-measured after Update 03b; the other rows are from earlier builds. Home's LCP is
-the first hero card, `larrive-campaign.webp` (100 KB, kept as supplied); a lighter export of it is the main lever left. A combo's product page transfers ≈ 1 MB, as its thumbnail rail shows every piece's images;
-small thumbnail exports would cut that.
+Scores by step (median): after 1 · 69 / 80 / 73 / 77 / 72; after 2 · 84 / 88 / 90 / 93 / 89; after 3 · 87 / 89 /
+93 / 94 / 94; after 4 · 86 / 92 / 93 / 96 / 89; after 5 · 91 / 92 / 95 / 96 / 95; with PAGE BOOT and shop's first
+cards in the HTML · 100 on all five. Lighthouse's simulation replays every request that starts before the page's
+largest paint over a slow link, so what mattered most was fetching nothing but the first screen until it had painted.
 
 What keeps it fast (keep these in place):
 
 - The home hero intro and the origin boarding pass run as CSS animations, not per-frame JS.
 - Home sections below the fold render, and ScrollSmoother/pins start, on the first scroll, touch, key or pointer
   move (or a `#hash` link, or after 8 s idle).
-- The product page preloads its first image from a small generated script at the top of `<head>` (it must stay above
-  the stylesheets), and renders everything below the buy box after the first paint.
-- Shop, product, brand and origin load their page module with `async`: content renders from data without waiting for
-  the deferred CDN scripts; motion starts after them (`whenScriptsReady()` in `motion.js`).
-- Every page preloads its module graph (generated) and the two first-screen font files. If Google Fonts updates
-  Cormorant Garamond or Manrope, update those two URLs (from the `latin` blocks of the Google Fonts CSS) or remove the preloads.
+- The product page's main image is in the HTML (its source set by a small generated script from `?id=`), and shop's
+  first two cards are too; everything below the buy box renders after the first paint.
+- PAGE BOOT (Home, product, Combos, About, Shop): no stylesheet or script is fetched until the first screen has painted.
+  The other pages preload their module graph (generated). Every page preloads the two first-screen font files
+  (self-hosted in `assets/fonts/`).
+- Critical CSS inline, `site.min.css` without blocking; space held for anything JS draws (no layout shift).
+- Right-sized images everywhere (`srcset`/`sizes`, thumbnails); only the LCP image is `fetchpriority="high"`.
 - Never use `data-speed` / `data-lag` except for ScrollSmoother parallax: ScrollSmoother reads them.
 
 ## TODO(client): values to replace
