@@ -23,6 +23,42 @@ const pauseReasons = new Set();
 
 export const getSmoother = () => smoother;
 
+/* ---------- plugins on demand (Update 04) ----------
+   Every page loads gsap and ScrollTrigger up front. The other plugins load when something
+   needs them: SplitText as a split heading nears the screen, DrawSVG with a map or the
+   Rituals rows, Flip when the browser is idle on pages that filter or switch tabs, and
+   ScrollSmoother only on desktops with a fine pointer (never on touch devices). */
+const PLUGIN_SRC = {
+  ScrollSmoother: "https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/ScrollSmoother.min.js",
+  SplitText: "https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/SplitText.min.js",
+  DrawSVGPlugin: "https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/DrawSVGPlugin.min.js",
+  Flip: "https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/Flip.min.js",
+};
+const pluginLoads = {};
+/** Loads a GSAP plugin once (from the same CDN, same version) and registers it. */
+export function loadPlugin(name) {
+  if (window[name]) {
+    if (hasGSAP()) gsap.registerPlugin(window[name]);
+    return Promise.resolve(window[name]);
+  }
+  if (!pluginLoads[name]) {
+    pluginLoads[name] = new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = PLUGIN_SRC[name];
+      s.async = true;
+      s.onload = () => { if (hasGSAP() && window[name]) gsap.registerPlugin(window[name]); resolve(window[name]); };
+      s.onerror = () => { delete pluginLoads[name]; reject(new Error(`${name} failed to load`)); };
+      document.head.appendChild(s);
+    });
+  }
+  return pluginLoads[name];
+}
+/** Runs fn when the browser is idle (or after `timeout` ms). */
+export const whenIdle = (fn, timeout = 2500) =>
+  (window.requestIdleCallback ? requestIdleCallback(fn, { timeout }) : setTimeout(fn, Math.min(timeout, 1200)));
+/** Desktop with a mouse or trackpad and motion allowed: the only place ScrollSmoother runs. */
+const smoothCapable = () => matchMedia(MQ.isDesktop).matches && matchMedia("(hover: hover) and (pointer: fine)").matches;
+
 /** True when ScrollSmoother is actually driving the page (not native touch scrolling). */
 const isSmoothing = () =>
   !!smoother && getComputedStyle(smoother.wrapper()).position === "fixed";
@@ -39,6 +75,11 @@ const isSmoothing = () =>
 wireOverlayPausing();
 
 export function initMotion(setup) {
+  // Desktop: ScrollSmoother first (it wraps the page before any trigger is measured).
+  if (hasGSAP() && smoothCapable() && !window.ScrollSmoother) {
+    loadPlugin("ScrollSmoother").catch(() => {}).then(() => initMotion(setup));
+    return;
+  }
   wireHashLinks();
 
   if (!hasGSAP()) {
@@ -51,7 +92,7 @@ export function initMotion(setup) {
   // Scripts arrived: stop the <head> watchdog from dropping html.motion-ok.
   document.documentElement.classList.add("motion-live");
 
-  const plugins = ["ScrollTrigger", "ScrollSmoother", "SplitText", "DrawSVGPlugin", "Flip"]
+  const plugins = ["ScrollTrigger", "ScrollSmoother", "SplitText", "DrawSVGPlugin", "Flip"]   // whichever are here
     .map((n) => window[n]).filter(Boolean);
   gsap.registerPlugin(...plugins);
   gsap.defaults({ ease: "power4.out", duration: 0.9 });
@@ -59,7 +100,7 @@ export function initMotion(setup) {
   mm = gsap.matchMedia();
   mm.add(MQ, (ctx) => {
     const c = ctx.conditions;
-    if (!c.reduce && window.ScrollSmoother) {
+    if (!c.reduce && window.ScrollSmoother && smoothCapable()) {
       smoother = ScrollSmoother.create({
         wrapper: "#smooth-wrapper",
         content: "#smooth-content",
@@ -95,17 +136,20 @@ export function initMotion(setup) {
 /* ---------- boot helpers (pages rendered from data) ---------- */
 
 /**
- * Resolves once the deferred CDN scripts (Bootstrap, GSAP + plugins; Flip is the last)
- * have run. Pages whose module is loaded with `async` render their content first
+ * Resolves once the deferred CDN scripts (Bootstrap, gsap, ScrollTrigger and any page
+ * extras) have run. Pages whose module is loaded with `async` render their content first
  * and start motion only after this. An async module can run after parsing but
- * before the deferred scripts, so readyState is not enough: wait for the last of
- * them, or for DOMContentLoaded (fired after every deferred script, loaded or not).
+ * before the deferred scripts, so readyState is not enough: wait for DOMContentLoaded
+ * (fired after every deferred script, loaded or not).
  */
 export function whenScriptsReady() {
   return new Promise((resolve) => {
+    const ready = () => window.gsap && window.ScrollTrigger;
+    // gsap missing at DOMContentLoaded (a slow or failed CDN): wait for load, when every script has run or failed.
+    const settle = () => (ready() || document.readyState === "complete" ? resolve() : addEventListener("load", resolve, { once: true }));
     const nav = performance.getEntriesByType("navigation")[0];
-    if (window.Flip || (nav && nav.domContentLoadedEventEnd > 0)) return resolve();
-    document.addEventListener("DOMContentLoaded", () => resolve(), { once: true });
+    if (nav && nav.domContentLoadedEventEnd > 0) return settle();
+    document.addEventListener("DOMContentLoaded", settle, { once: true });
   });
 }
 /** Give the main thread back (lets the browser paint / handle input between chunks of work). */
@@ -187,7 +231,7 @@ function wireHashLinks() {
 
 /** Headline lines rising from masks. Runs after fonts load so lines are measured correctly. */
 export function splitLines(el, { trigger = el, start = "top 85%", ctx = null, duration = 1 } = {}) {
-  if (!hasGSAP() || !window.SplitText || !el) return;
+  if (!hasGSAP() || !el) return;
   const make = () => SplitText.create(el, {
     type: "lines", mask: "lines", autoSplit: true,
     onSplit(self) {
@@ -201,7 +245,8 @@ export function splitLines(el, { trigger = el, start = "top 85%", ctx = null, du
   const io = new IntersectionObserver(([entry]) => {
     if (!entry.isIntersecting) return;
     io.disconnect();
-    document.fonts.ready.then(() => (ctx ? ctx.add(make) : make()));
+    Promise.all([document.fonts.ready, loadPlugin("SplitText")])
+      .then(() => (ctx ? ctx.add(make) : make()), () => {});   // no SplitText (CDN down): the heading simply stays
   }, { rootMargin: "0px 0px 40% 0px" });
   io.observe(el);
   ctx?.add(() => () => io.disconnect());

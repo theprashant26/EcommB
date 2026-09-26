@@ -169,6 +169,11 @@ PICK = r"""({ vh }) => {
 }"""
 
 
+# Rules that hold space for content JS has not drawn yet: they matter before the first render,
+# which the extraction (run after it) never sees, so they are always inlined.
+RESERVE = re.compile(r":empty|pdp--pending|data-pending")
+
+
 def norm_selector(sel):
     """One spelling for a selector, whether the browser's (CSSOM) or esbuild's (the file's)."""
     return re.sub(r"\s+", "", sel).replace("::", ":").replace('"', "").replace("'", "").lower()
@@ -228,7 +233,7 @@ def critical_css(site_css, selectors):
                 out.append(f"{prelude}{{{body}}}")
             elif re.match(r"@(-webkit-)?keyframes", prelude):
                 keyframes[prelude.split()[-1]] = f"{prelude}{{{body}}}"
-            elif not prelude.startswith("@") and norm_selector(prelude) in want:
+            elif not prelude.startswith("@") and (norm_selector(prelude) in want or RESERVE.search(prelude)):
                 out.append(f"{prelude}{{{body}}}")
         return "".join(out)
 

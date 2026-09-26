@@ -11,6 +11,7 @@
    ========================================================================== */
 
 import { formatCoords, esc } from "./format.js";
+import { loadPlugin } from "./motion.js";
 
 const MAP_W = 2400, MAP_H = 1517;
 let uid = 0;
@@ -30,6 +31,7 @@ function loadAssets() {
  * @param {{routes?:string[], pins?:string[]}} opts  e.g. routes:["paris","leh"], pins:["paris","delhi","leh"]
  */
 export async function createMap3d(stage, { routes = ["paris", "leh"], pins = ["paris", "delhi", "leh"], focus = null } = {}) {
+  await loadPlugin("DrawSVGPlugin").catch(() => {});   // the routes draw with it (loaded on demand, Update 04)
   const [svgText, pinData] = await loadAssets();
   const id = ++uid;
   const proj = pinData._projection;

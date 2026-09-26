@@ -33,7 +33,7 @@ const MOMENTS = {
 };
 
 const rows = $("[data-ritual-rows]");
-if (rows) rows.innerHTML = ritualRowsHTML({ headingLevel: 2 });
+if (rows) { rows.innerHTML = ritualRowsHTML({ headingLevel: 2 }); rows.removeAttribute("data-pending"); }
 
 const day = $("[data-day]");
 if (day) {

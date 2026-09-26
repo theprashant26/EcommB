@@ -24,7 +24,7 @@ initMotion((c, ctx) => {
   if (c.reduce) return; // final states: the text is simply there
   // The title is held hidden (CSS, html.motion-ok) until it is split, so it never flashes.
   const title = $(".about-title");
-  if (window.SplitText) {
+  if (window.SplitText) {   // a static <script> on this page: the title is split as soon as fonts are in
     document.fonts.ready.then(() => ctx.add(() => SplitText.create(title, {
       type: "lines", mask: "lines", autoSplit: true,
       onSplit(self) {

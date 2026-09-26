@@ -31,6 +31,7 @@ const count = $("[data-wl-count]");
 function render() {
   const items = wishlistIds().map(getProduct).filter(Boolean);
   grid.innerHTML = items.map((p) => cardHTML(p, { headingLevel: 2, remove: true })).join("");
+  grid.removeAttribute("data-pending");
   grid.hidden = !items.length;
   empty.hidden = !!items.length;
   tools.hidden = !items.length;

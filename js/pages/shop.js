@@ -14,7 +14,7 @@ import { initBag } from "../core/bag.js";
 import { initWishlist } from "../core/wishlist.js";
 import { initReveals } from "../core/reveal.js";
 import { initSearch } from "../core/search.js";
-import { initMotion, splitLines, whenScriptsReady, afterPaint } from "../core/motion.js";
+import { initMotion, splitLines, whenScriptsReady, afterPaint, loadPlugin, whenIdle } from "../core/motion.js";
 import { cardHTML } from "../core/cards.js";
 import { plinthSetHTML } from "../core/plinth.js";
 import { PRODUCTS, CATEGORY_LABELS, RITUAL_LABELS, isCombo } from "../data/products.js";
@@ -25,6 +25,8 @@ import { esc, formatCoords, reducedMotion, hasGSAP, $, $$, cssReady } from "../c
 await cssReady();   // Update 04: the full stylesheet arrives without blocking; render once it applies
 
 initHeader();
+// Flip re-lays the grid out when a filter changes: fetch it while the visitor reads (Update 04).
+whenScriptsReady().then(() => whenIdle(() => loadPlugin("Flip").catch(() => {})));
 initBag();
 initSearch();
 initWishlist();

@@ -6,11 +6,13 @@
    ========================================================================== */
 
 import { $, $$, hasGSAP, reducedMotion } from "./format.js";
+import { loadPlugin, whenIdle } from "./motion.js";
 
 export function initTabs(root) {
   const tabs = $$("[role=tab]", root);
   const bar = $("[data-tab-bar]", root);
   if (!tabs.length) return;
+  if (bar && !reducedMotion()) whenIdle(() => hasGSAP() && loadPlugin("Flip").catch(() => {}));   // the underline's glide (Update 04)
 
   function select(tab, { focus = false } = {}) {
     const prev = tabs.find((t) => t.getAttribute("aria-selected") === "true");

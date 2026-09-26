@@ -244,12 +244,14 @@ if (batch) {
   (async () => {
     await afterPaint();
     rest();
+    root.removeAttribute("data-pending");
     await whenScriptsReady();
     await yieldToMain();
     initMotion(setupMotion);
   })();
 } else {
   renderUnknown();
+  root.removeAttribute("data-pending");
   whenScriptsReady().then(() => initMotion(() => {}));
 }
 

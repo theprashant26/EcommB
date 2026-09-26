@@ -13,7 +13,7 @@
 import { RITUALS } from "../data/rituals.js";
 import { getProduct, productURL } from "../data/products.js";
 import { esc, icon, imageSize, $, $$ } from "./format.js";
-import { splitLines } from "./motion.js";
+import { splitLines, loadPlugin } from "./motion.js";
 
 /** Rows markup. headingLevel: 3 under a section H2 (home), 2 on rituals.html. */
 export function ritualRowsHTML({ headingLevel = 3 } = {}) {
@@ -88,7 +88,7 @@ export function ritualRowsMotion(root, { ctx, reduce }) {
     });
   });
   // Icons draw in once their strokes are inline.
-  inlineIcons(root).then((svgs) => {
+  Promise.all([inlineIcons(root), loadPlugin("DrawSVGPlugin").catch(() => null)]).then(([svgs]) => {
     if (!window.DrawSVGPlugin || !svgs.length) return;
     const add = (fn) => (ctx ? ctx.add(fn) : fn());
     add(() => rows.forEach((row) => {
