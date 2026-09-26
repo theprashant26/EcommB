@@ -27,7 +27,7 @@ import { shareButtonHTML, initShare } from "../core/share.js";
 import { initTabs } from "../core/tabs.js";
 import { nameForTransition } from "../core/transitions.js";
 import { CONFIG } from "../data/config.js";
-import { PRODUCTS, getProduct } from "../data/products.js";
+import { PRODUCTS, getProduct, sizesOf, sizeOf } from "../data/products.js";
 import { getBrand, brandURL } from "../data/brands.js";
 import { ORIGINS, BATCHES, ARRIVAL_ORIGIN_ID } from "../data/origins.js";
 import { esc, formatPrice, formatCoords, imageSize, icon, priceHTML, reducedMotion, $, $$ } from "../core/format.js";
@@ -42,6 +42,10 @@ const root = $("[data-pdp]");
 const id = new URLSearchParams(location.search).get("id");
 const product = id && getProduct(id);
 const brand = product && getBrand(product.brand);
+/** The size on show (Update 03 §8): ?size=compact, else the product's default (first) size. */
+let size = product ? sizeOf(product, new URLSearchParams(location.search).get("size")).key : "full";
+const sizeNow = () => sizeOf(product, size);
+const measure = (label = "") => label.split(" · ")[0];
 
 const buyable = (p) => !p.comingSoon && CONFIG.showPrices;
 const batchFor = (p) => Object.entries(BATCHES).find(([, b]) => b.productId === p.id)?.[0];
@@ -58,7 +62,14 @@ const clean = (v = "") => {
    Gallery
    ========================================================================== */
 
-const galleryOf = (p) => (p.gallery?.length ? p.gallery : [{ src: p.images.hero, alt: p.fullName }]);
+const galleryOf = (p) => {
+  const base = p.gallery?.length ? p.gallery : [{ src: p.images.hero, alt: p.fullName }];
+  const s = sizeOf(p, size);
+  if (!s.compare) return base;
+  // A smaller size opens on the comparison: the full size and this one, side by side.
+  return [{ src: s.compare, alt: `${p.fullName}: ${measure(sizesOf(p)[0].label)} and ${measure(s.label)} side by side`,
+            caption: `${measure(sizesOf(p)[0].label)} and ${measure(s.label)}` }, ...base];
+};
 /** The images (not the 360° tile) — what the lightbox shows. */
 const photos = (p) => galleryOf(p).filter((g) => g.src);
 
@@ -107,22 +118,28 @@ function galleryHTML(p) {
    Buy box
    ========================================================================== */
 
-function buyHTML(p) {
+/** Update 03 §9: "4.5 ★ | 64 ratings" pill beside the share button (scrolls to Ratings & Reviews); plain zinc text when there are none. */
+function ratingBadgeHTML(p) {
   const r = ratingFor(p);
-  const rating = r
-    ? `<a class="pdp-rating" href="#reviews">${icon("star", "icon--filled")}<span>${r.average.toFixed(1)}</span><span class="pdp-rating-sep">·</span><span class="pdp-rating-n">${r.count} ratings</span></a>`
-    : `<a class="pdp-rating" href="#reviews"><span class="pdp-rating-n">No ratings yet</span></a>`;
+  if (!r) return `<span class="pdp-norating">No ratings yet</span>`;
+  return `<a class="pdp-rating" href="#reviews" aria-label="Rated ${r.average.toFixed(1)} out of 5 from ${r.count} ratings. Go to Ratings and Reviews">`
+    + `<span>${r.average.toFixed(1)}</span>${icon("star", "icon--filled")}<span class="pdp-rating-sep" aria-hidden="true">|</span><span>${r.count} ${r.count === 1 ? "rating" : "ratings"}</span></a>`;
+}
+
+function buyHTML(p) {
+  const sz = sizeNow();
   const price = p.comingSoon
     ? `<p class="pdp-price"><span class="price">Arrives soon</span></p>`
-    : `<p class="pdp-price">${priceHTML(p)}</p>${CONFIG.showPrices ? `<p class="pdp-tax">Inclusive of all taxes</p>` : ""}`;
+    : `<p class="pdp-price" data-pdp-price>${priceHTML({ price: sz.price, mrp: sz.mrp })}</p>${CONFIG.showPrices ? `<p class="pdp-tax">Inclusive of all taxes</p>` : ""}`;
+  const sizes = sizesOf(p).filter((x) => x.label);
   const d = CONFIG.delivery;
   const choices = buyable(p) ? `
     <div class="pdp-choices">
-      ${p.size && p.size !== "TBC" ? `
+      ${sizes.length ? `
       <div class="pdp-choice">
         <p class="t-label" id="sizeLabel">Size</p>
-        <div class="pdp-sizes" role="radiogroup" aria-labelledby="sizeLabel">
-          <button type="button" role="radio" class="size-chip" aria-checked="true">${esc(p.size)}</button>
+        <div class="pdp-sizes" role="radiogroup" aria-labelledby="sizeLabel" data-sizes>
+          ${sizes.map((x) => `<button type="button" role="radio" class="size-chip" data-size-key="${esc(x.key)}" aria-checked="${x.key === sz.key}" tabindex="${x.key === sz.key ? 0 : -1}">${esc(x.label)}</button>`).join("")}
         </div>
       </div>` : ""}
       <div class="pdp-choice">
@@ -135,16 +152,18 @@ function buyHTML(p) {
       </div>
     </div>` : "";
   const action = buyable(p)
-    ? `<button type="button" class="btn-maison btn-cart pdp-add" data-add-to-bag="${esc(p.id)}" data-qty-source="#pdpQty" data-add-from="[data-hero-img]"><span>Add to Cart</span></button>`
+    ? `<button type="button" class="btn-maison btn-cart pdp-add" data-add-to-bag="${esc(p.id)}" data-size="${esc(sz.key)}" data-qty-source="#pdpQty" data-add-from="[data-hero-img]"><span>Add to Cart</span></button>`
     : `<button type="button" class="btn-maison pdp-add" data-notify="${esc(p.id)}"><span>Notify me</span></button>`;
   return `
     <div class="pdp-buy" data-buy>
       <div class="pdp-brandrow">
         ${brand ? `<a class="t-label pdp-brand" href="${brandURL(brand.id)}">${esc(brand.name)}</a>` : "<span></span>"}
-        ${shareButtonHTML()}
+        <div class="pdp-brandrow-end">
+          ${p.comingSoon ? "" : `<span data-rating-slot>${ratingBadgeHTML(p)}</span>`}
+          ${shareButtonHTML()}
+        </div>
       </div>
-      <h1 class="t-h3 pdp-name">${esc(p.comingSoon ? p.fullName : p.fullName)}</h1>
-      ${p.comingSoon ? "" : rating}
+      <h1 class="t-h3 pdp-name">${esc(p.fullName)}</h1>
       <div class="pdp-priceblock">${price}</div>
       <p class="pdp-benefit">${esc(p.benefit)}${p.forWho ? `. ${esc(p.forWho)}` : ""}.</p>
       ${choices}
@@ -164,6 +183,9 @@ function buyHTML(p) {
 /* ==========================================================================
    Sections below the top area
    ========================================================================== */
+
+/** A small icon per How to Use step: apply, work in, done. */
+const STEP_ICONS = ["droplet", "sparkles", "check"];
 
 function tabsHTML(p) {
   const details = (p.details || []).map(([k, v]) => `<tr><th scope="row">${esc(k)}</th><td${/TODO\(client\)/.test(v) ? ' class="is-tbc"' : ""}>${esc(clean(v))}</td></tr>`).join("");
@@ -188,6 +210,10 @@ function tabsHTML(p) {
     : `<p class="tab-empty">Its features are revealed with its name.</p>`;
   const tabs = [
     ["details", "Product Details", details ? `<table class="spec"><tbody>${details}</tbody></table>` : `<p class="tab-empty">Details arrive with the product.</p>`],
+    ["how", "How to Use", p.howTo?.length
+      ? `<ol class="howto">${p.howTo.map((step, i) => `
+          <li class="howto-step"><span class="howto-n">${String(i + 1).padStart(2, "0")}</span><span class="howto-ico">${icon(STEP_ICONS[Math.min(i, STEP_ICONS.length - 1)])}</span><p>${esc(step)}</p></li>`).join("")}</ol>`
+      : `<p class="tab-empty">How to use it arrives with the product.</p>`],
     ["desc", "Product Description", `
       <div class="desc">
         <div class="desc-text">
@@ -196,7 +222,6 @@ function tabsHTML(p) {
           ${ingredients}
           ${notes}${dayline}
         </div>
-        ${p.howTo?.length ? `<div class="desc-how"><p class="desc-sub t-label">How to use</p><ol class="steps">${p.howTo.map((s) => `<li>${esc(s)}</li>`).join("")}</ol></div>` : ""}
       </div>`],
     ["features", "Special Features", features],
   ];
@@ -296,11 +321,12 @@ function renderProduct(p) {
   const bar = $("[data-buybar]");
   if (bar) {
     $("[data-buybar-name]", bar).textContent = p.name;
-    $("[data-buybar-price]", bar).textContent = p.comingSoon ? "Arrives soon" : CONFIG.showPrices ? formatPrice(p.price) : "Price at launch";
+    $("[data-buybar-price]", bar).textContent = p.comingSoon ? "Arrives soon" : CONFIG.showPrices ? formatPrice(sizeNow().price) : "Price at launch";
     const btn = $("[data-buybar-add]", bar);
     btn.classList.add("btn-cart");
     if (buyable(p)) {
       btn.dataset.addToBag = p.id;
+      btn.dataset.size = sizeNow().key;
       btn.dataset.qtySource = "#pdpQty";
       btn.dataset.addFrom = "[data-hero-img]";
     } else {
@@ -330,87 +356,132 @@ if (product) renderProduct(product); else renderMissing();
 
 if (product) {
   const p = product;
-  const gallery = $("[data-gallery]");
-  const track = $("[data-track]", gallery);
-  const slides = $$("[data-slide]", track);
-  const thumbsList = $("[data-thumbs]", gallery);
-  let active = 0;
-  let spin = null;
+  /* ---- gallery: rail, stage (phone carousel), 360° tile, lightbox. Re-run when the size changes it. ---- */
+  const G = { active: 0, spin: null, track: null, onResize: () => {} };
+  addEventListener("resize", () => G.onResize());
 
-  const smooth = () => (reducedMotion() ? "auto" : "smooth");
-  const go = (i, { behavior = smooth() } = {}) => {
-    i = Math.max(0, Math.min(slides.length - 1, i));
-    track.scrollTo({ left: i * track.clientWidth, behavior });
-    setActive(i);
-  };
+  function initGallery() {
+    const gallery = $("[data-gallery]");
+    const track = $("[data-track]", gallery);
+    const slides = $$("[data-slide]", track);
+    const thumbsList = $("[data-thumbs]", gallery);
+    G.active = 0; G.spin = null; G.track = track;
+    const smooth = () => (reducedMotion() ? "auto" : "smooth");
+    const go = (i, { behavior = smooth() } = {}) => {
+      i = Math.max(0, Math.min(slides.length - 1, i));
+      track.scrollTo({ left: i * track.clientWidth, behavior });
+      setActive(i);
+    };
 
-  function setActive(i) {
-    if (i === active && track.dataset.ready) return;
-    active = i;
-    track.dataset.ready = "1";
-    // Only the slide on show is in the tab order (the others sit off-stage, under the buy box).
-    slides.forEach((sl, k) => { sl.inert = k !== i; });
-    $$("[data-go]", gallery).forEach((b) => {
-      const on = Number(b.dataset.go) === i;
-      b.classList.toggle("is-active", on);
-      if (on) b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current");
-    });
-    // Keep the active thumbnail in view inside the rail only (never scroll the page).
-    const t = $(`.pdp-thumb[data-go="${i}"]`, thumbsList);
-    if (t) {
-      const vertical = thumbsList.scrollHeight > thumbsList.clientHeight + 1;
-      if (vertical) {
-        const top = t.offsetTop - thumbsList.offsetTop;
-        if (top < thumbsList.scrollTop || top + t.offsetHeight > thumbsList.scrollTop + thumbsList.clientHeight) thumbsList.scrollTop = top;
-      } else {
-        const left = t.offsetLeft - thumbsList.offsetLeft;
-        if (left < thumbsList.scrollLeft || left + t.offsetWidth > thumbsList.scrollLeft + thumbsList.clientWidth) thumbsList.scrollLeft = left - 8;
+    function setActive(i) {
+      if (i === G.active && track.dataset.ready) return;
+      G.active = i;
+      track.dataset.ready = "1";
+      // Only the slide on show is in the tab order (the others sit off-stage, under the buy box).
+      slides.forEach((sl, k) => { sl.inert = k !== i; });
+      $$("[data-go]", gallery).forEach((b) => {
+        const on = Number(b.dataset.go) === i;
+        b.classList.toggle("is-active", on);
+        if (on) b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current");
+      });
+      // Keep the active thumbnail in view inside the rail only (never scroll the page).
+      const t = $(`.pdp-thumb[data-go="${i}"]`, thumbsList);
+      if (t) {
+        const vertical = thumbsList.scrollHeight > thumbsList.clientHeight + 1;
+        if (vertical) {
+          const top = t.offsetTop - thumbsList.offsetTop;
+          if (top < thumbsList.scrollTop || top + t.offsetHeight > thumbsList.scrollTop + thumbsList.clientHeight) thumbsList.scrollTop = top;
+        } else {
+          const left = t.offsetLeft - thumbsList.offsetLeft;
+          if (left < thumbsList.scrollLeft || left + t.offsetWidth > thumbsList.scrollLeft + thumbsList.clientWidth) thumbsList.scrollLeft = left - 8;
+        }
       }
+      if (slides[i]?.classList.contains("pdp-slide--360")) start360();
     }
-    if (slides[i]?.classList.contains("pdp-slide--360")) start360();
-  }
 
-  // 360° tile: the main stage becomes a drag-to-turn canvas on the HD frames (loaded only now).
-  function start360() {
-    if (spin || !p.spin) return;
-    const slide = $(".pdp-slide--360", track);
-    const canvas = $("[data-360]", slide);
-    const hd = p.spinHD || p.spin;
-    spin = createSpin(canvas, { path: hd.path, frames: hd.frames, mode: "drag" });
-    spin.showFirst().then(() => slide.classList.add("is-drawn"));
-    spin.load();
-    let acc = 0;
-    canvas.addEventListener("wheel", (e) => {
-      if (Math.abs(e.deltaX) < Math.abs(e.deltaY) && !e.shiftKey) return; // vertical wheel scrolls the page
-      e.preventDefault();
-      acc += e.deltaX || e.deltaY;
-      const steps = Math.trunc(acc / 40);
-      if (steps) { spin.setFrame(spin.frame + steps); acc -= steps * 40; }
-    }, { passive: false });
-  }
+    // 360° tile: the main stage becomes a drag-to-turn canvas on the HD frames (loaded only now).
+    function start360() {
+      if (G.spin || !p.spin) return;
+      const slide = $(".pdp-slide--360", track);
+      const canvas = $("[data-360]", slide);
+      const hd = p.spinHD || p.spin;
+      const spin = G.spin = createSpin(canvas, { path: hd.path, frames: hd.frames, mode: "drag" });
+      spin.showFirst().then(() => slide.classList.add("is-drawn"));
+      spin.load();
+      let acc = 0;
+      canvas.addEventListener("wheel", (e) => {
+        if (Math.abs(e.deltaX) < Math.abs(e.deltaY) && !e.shiftKey) return; // vertical wheel scrolls the page
+        e.preventDefault();
+        acc += e.deltaX || e.deltaY;
+        const steps = Math.trunc(acc / 40);
+        if (steps) { spin.setFrame(spin.frame + steps); acc -= steps * 40; }
+      }, { passive: false });
+    }
 
-  // Thumbnails, dots
-  gallery.addEventListener("click", (e) => {
-    const t = e.target.closest("[data-go]");
-    if (t) { go(Number(t.dataset.go)); return; }
-    const r = e.target.closest("[data-rail]");
-    if (r) thumbsList.scrollBy({ top: Number(r.dataset.rail) * 88, behavior: smooth() });
-    const open = e.target.closest("[data-open]");
-    if (open) openLightbox({ items: photos(p), index: Number(open.dataset.open), from: $("img", open) });
-  });
-  // Swipes (phones) and keyboard scrolling of the track keep the thumbnails/dots in step.
-  let raf = 0;
-  track.addEventListener("scroll", () => {
-    if (raf) return;
-    raf = requestAnimationFrame(() => {
-      raf = 0;
-      const i = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
-      if (i !== active) setActive(i);
+    // Thumbnails, dots
+    gallery.addEventListener("click", (e) => {
+      const t = e.target.closest("[data-go]");
+      if (t) { go(Number(t.dataset.go)); return; }
+      const r = e.target.closest("[data-rail]");
+      if (r) thumbsList.scrollBy({ top: Number(r.dataset.rail) * 88, behavior: smooth() });
+      const open = e.target.closest("[data-open]");
+      if (open) openLightbox({ items: photos(p), index: Number(open.dataset.open), from: $("img", open) });
     });
-  }, { passive: true });
-  addEventListener("resize", () => track.scrollTo({ left: active * track.clientWidth }));
-  setActive(0);
-  nameForTransition($("[data-hero-img]"));   // the card's image glides into this one (view transitions)
+    // Swipes (phones) and keyboard scrolling of the track keep the thumbnails/dots in step.
+    let raf = 0;
+    track.addEventListener("scroll", () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const i = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+        if (i !== G.active) setActive(i);
+      });
+    }, { passive: true });
+    G.onResize = () => track.scrollTo({ left: G.active * track.clientWidth });
+    setActive(0);
+    nameForTransition($("[data-hero-img]"));   // the card's image glides into this one (view transitions)
+  }
+  initGallery();
+
+  /* ---- size (Update 03 §8): price, MRP and discount, the sticky bar, the URL, Add to Cart and the gallery follow it ---- */
+  function setSize(key) {
+    if (key === size) return;
+    const before = sizeOf(p, size);
+    size = sizeOf(p, key).key;
+    const sz = sizeNow();
+    $$("[data-size-key]", root).forEach((b) => {
+      const on = b.dataset.sizeKey === size;
+      b.setAttribute("aria-checked", String(on));
+      b.tabIndex = on ? 0 : -1;
+    });
+    const priceEl = $("[data-pdp-price]", root);
+    if (priceEl) priceEl.innerHTML = priceHTML({ price: sz.price, mrp: sz.mrp });
+    $$('[data-add-to-bag]').forEach((b) => { if (b.dataset.addToBag === p.id) b.dataset.size = size; });
+    const barPrice = $("[data-buybar-price]");
+    if (barPrice && CONFIG.showPrices) barPrice.textContent = formatPrice(sz.price);
+    const url = new URL(location.href);
+    if (size === sizesOf(p)[0].key) url.searchParams.delete("size"); else url.searchParams.set("size", size);
+    history.replaceState(null, "", url);
+    // The gallery changes only when the comparison photo comes or goes.
+    if (Boolean(before.compare) !== Boolean(sz.compare) || before.compare !== sz.compare) {
+      G.spin?.destroy?.();
+      $("[data-gallery]").outerHTML = galleryHTML(p);
+      initGallery();
+    }
+    delivery?.refresh();
+  }
+  const sizesEl = $("[data-sizes]", root);
+  sizesEl?.addEventListener("click", (e) => { const b = e.target.closest("[data-size-key]"); if (b) setSize(b.dataset.sizeKey); });
+  sizesEl?.addEventListener("keydown", (e) => {        // radiogroup: arrows move and select
+    const keys = $$("[data-size-key]", sizesEl);
+    const i = keys.findIndex((b) => b.dataset.sizeKey === size);
+    const d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+    if (!d || i < 0) return;
+    e.preventDefault();
+    const next = keys[(i + d + keys.length) % keys.length];
+    setSize(next.dataset.sizeKey);
+    next.focus();
+  });
 
   // Quantity stepper
   let delivery = null;
@@ -443,7 +514,7 @@ if (product) {
     // Delivery Options: "free delivery" is judged on the order this piece would make.
     const dlRoot = $(".pdp-delivery");
     delivery = dlRoot && initDelivery(dlRoot, {
-      orderValue: () => bagSubtotal() + (bagHas(p.id) ? 0 : p.price * (parseInt(qty?.value, 10) || 1)),
+      orderValue: () => bagSubtotal() + (bagHas(p.id, size) ? 0 : sizeNow().price * (parseInt(qty?.value, 10) || 1)),
     });
     document.addEventListener("bag:change", () => delivery?.refresh());
 
@@ -451,9 +522,8 @@ if (product) {
     initTabs($("[data-tabs]"));
     initReviews(p, $("#reviews"));
     document.addEventListener("reviews:change", () => {
-      const r = ratingFor(p);
-      const link = $(".pdp-rating");
-      if (link && r) link.innerHTML = `${icon("star", "icon--filled")}<span>${r.average.toFixed(1)}</span><span class="pdp-rating-sep">·</span><span class="pdp-rating-n">${r.count} ratings</span>`;
+      const slot = $("[data-rating-slot]");
+      if (slot) slot.innerHTML = ratingBadgeHTML(p);
     });
 
     // Where it's from: the mini tilted map, built when it nears the screen.

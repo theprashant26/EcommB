@@ -74,7 +74,7 @@ function renderLive(b) {
   const batch = Object.entries(BATCHES).find(([, x]) => x.originId === b.originId)?.[0];
 
   root.innerHTML = heroHTML(b, {
-    products: pieces.filter((p) => !p.comingSoon),
+    products: pieces,
     label: [b.category, origin?.name].filter(Boolean).join(" · "),
     story: b.roomStory || firstSentence(b.story),
     action: `<a class="btn-maison" href="#pieces"><span>Shop now ${icon("chevron-down")}</span></a>`,

@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Your wishlist | Jiai Life</title>
-<meta name="description" content="The pieces you saved at Jiai Life.">
+<title>Compact size | Jiai Life</title>
+<meta name="description" content="Your Jiai Life favourites in travel-ready sizes, for the bag, the desk and the road.">
 <meta name="theme-color" content="#FFFFFF">
 <!-- TODO(client): make og:image / og:url absolute once the domain is live -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Jiai Life">
-<meta property="og:title" content="Your wishlist | Jiai Life">
-<meta property="og:description" content="The pieces you saved at Jiai Life.">
+<meta property="og:title" content="Compact size | Jiai Life">
+<meta property="og:description" content="Your Jiai Life favourites in travel-ready sizes, for the bag, the desk and the road.">
 <meta property="og:image" content="assets/brand/og-maison.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -42,13 +42,13 @@
 <link rel="modulepreload" href="js/data/config.js">
 <link rel="modulepreload" href="js/data/origins.js">
 <link rel="modulepreload" href="js/data/products.js">
-<link rel="modulepreload" href="js/pages/wishlist.js">
+<link rel="modulepreload" href="js/pages/compact.js">
 <!-- MODULEPRELOAD END -->
 <link rel="icon" href="assets/brand/favicon-32.png" sizes="32x32">
 <link rel="icon" href="assets/brand/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/brand/favicon-180.png">
 </head>
-<body data-page="wishlist">
+<body data-page="compact">
 
 <a class="skip-link" href="#main">Skip to content</a>
 
@@ -148,26 +148,53 @@
 <div id="smooth-wrapper">
   <div id="smooth-content">
 
-    <main id="main" class="page-main page-wishlist">
-      <section class="section wl" aria-labelledby="wl-title">
+    <main id="main" class="page-main page-compact">
+      <!-- Update 03 §7: compact sizes. Rendered from the `sizes` in js/data/products.js by js/pages/compact.js -->
+      <section class="compact-hero" aria-labelledby="compact-title">
+        <div class="wrap compact-hero-grid">
+          <div class="compact-hero-copy">
+            <p class="t-label">Travel-ready</p>
+            <h1 id="compact-title" class="t-h1">Compact size.</h1>
+            <p class="compact-lede">Your favourites in travel-ready sizes, for the bag, the desk and the road.</p>
+            <a class="btn-maison" href="#compact-grid"><span>Shop compact sizes</span></a>
+          </div>
+          <div class="compact-hero-stage">
+            <img src="assets/categories/category-compact.webp" alt="The Jiai Life pieces in their compact, travel-ready sizes" width="1200" height="760" fetchpriority="high" decoding="async">
+          </div>
+        </div>
+      </section>
+
+      <section class="section compact-list" id="compact-grid" aria-labelledby="compact-list-title">
         <div class="wrap">
-          <div class="sec-head wl-head">
-            <div>
-              <p class="t-label">Saved pieces</p>
-              <h1 id="wl-title" class="t-h1">Your wishlist</h1>
-            </div>
-            <div class="wl-tools" data-wl-tools hidden>
-              <p class="wl-count" data-wl-count aria-live="polite"></p>
-              <button type="button" class="btn-maison" data-wl-all><span>Move all to cart</span></button>
-            </div>
+          <div class="sec-head">
+            <h2 id="compact-list-title" data-split>The compact pieces.</h2>
+            <p class="coords" data-compact-count></p>
           </div>
-          <div class="card-grid wl-grid" data-wl-grid></div>
-          <div class="empty-state" data-wl-empty hidden>
-            <svg class="icon empty-icon" aria-hidden="true"><use href="assets/icons/icons.svg#i-heart"></use></svg>
-            <p class="empty-title">Your wishlist is empty.</p>
-            <p class="empty-sub">Tap the heart on any piece to keep it here.</p>
-            <a class="btn-maison" href="shop.html"><span>Explore the house</span></a>
+          <div class="card-grid compact-grid" data-compact-grid></div>
+        </div>
+      </section>
+
+      <section class="section compare" aria-labelledby="compare-title">
+        <div class="wrap">
+          <div class="sec-head">
+            <h2 id="compare-title" data-split>See the difference.</h2>
+            <p>The same formula and the same fragrance, in a size that travels.</p>
           </div>
+          <div class="compare-row" data-compare></div>
+        </div>
+      </section>
+
+      <section class="section letters" id="letters" aria-labelledby="letters-title">
+        <div class="wrap letters-inner">
+          <div>
+            <h2 id="letters-title" data-split>Arrivals, by letter.</h2>
+            <p>One short letter each season: new brands, new pieces, and the stories behind them.</p>
+          </div>
+          <form class="inline-form letters-form" data-newsletter novalidate>
+            <label class="visually-hidden" for="letters-email">Email address</label>
+            <input class="field" id="letters-email" type="email" name="email" autocomplete="email" placeholder="Email address" required>
+            <button type="submit" class="btn-maison"><span>Subscribe</span></button>
+          </form>
         </div>
       </section>
     </main>
@@ -288,6 +315,6 @@
 <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/SplitText.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/DrawSVGPlugin.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/Flip.min.js"></script>
-<script type="module" src="js/pages/wishlist.js"></script>
+<script type="module" src="js/pages/compact.js"></script>
 </body>
 </html>

@@ -154,6 +154,40 @@ export async function createMap3d(stage, { routes = ["paris", "leh"], pins = ["p
       return tl;
     },
 
+    /**
+     * Update 03 §5 — the journey, played by itself (~5.5s): the flat plane tilts (1.6s), the
+     * routes draw one after the other (Paris 1.4s, then Leh 1s), the pins drop with a crisp settle
+     * (stagger .15) and the labels fade in. Returns a paused timeline; the caller plays it.
+     */
+    journey({ tilt = 52, rotZ = -6, order = ["paris", "leh"] } = {}) {
+      const pinList = Object.values(pinEls);
+      const dots = pinList.map((el) => el.querySelector(".map-pin-dot"));
+      const labels = pinList.map((el) => el.querySelector(".map-label"));
+      const tl = gsap.timeline({ paused: true, onUpdate: sync });
+      tl.set(plane, { rotationX: 0, rotation: 0, scale: zoom })
+        .set(pinList, { z: 120 })
+        .set([...dots, ...labels], { opacity: 0 })
+        .set(Object.values(routeEls).map((r) => r.mask), { drawSVG: "0%" })
+        .to(plane, { rotationX: tilt, rotation: rotZ, duration: 1.6, ease: "power2.inOut" });
+      order.forEach((key, i) => {
+        if (routeEls[key]) tl.to(routeEls[key].mask, { drawSVG: "100%", duration: i === 0 ? 1.4 : 1, ease: "power1.inOut" });
+      });
+      tl.to(pinList, { z: 0, duration: 0.45, stagger: 0.15, ease: "power4.out" }, "-=0.2")
+        .to(dots, { opacity: 1, duration: 0.15, stagger: 0.15 }, "<")
+        .to(labels, { opacity: 1, duration: 0.5, stagger: 0.15, ease: "power2.out" }, "<0.2")
+        .addLabel("pins-done");
+      return tl;
+    },
+
+    /** After the journey: a slow idle sway of the plane (rotateZ ±1.5°, 12s sine loop). */
+    sway({ rotZ = -6, amount = 1.5, duration = 12 } = {}) {
+      // One sine cycle from the resting angle (so it never jumps), repeated.
+      return gsap.timeline({ repeat: -1, onUpdate: sync })
+        .fromTo(plane, { rotation: rotZ }, { rotation: rotZ + amount, duration: duration / 4, ease: "sine.out" })
+        .to(plane, { rotation: rotZ - amount, duration: duration / 2, ease: "sine.inOut" })
+        .to(plane, { rotation: rotZ, duration: duration / 4, ease: "sine.in" });
+    },
+
     /** Final state without motion (reduced motion). */
     finalState({ tilt = 0, rotZ = 0 } = {}) {
       gsap.set(plane, { rotationX: tilt, rotation: rotZ, scale: zoom });

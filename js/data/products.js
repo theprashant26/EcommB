@@ -4,6 +4,7 @@
    Update 02 (§12) fields: category, subcategory, ritual, tags, mrp, cardScale,
    rating (demo values while CONFIG.demoReviews is on), details, description,
    features, gallery. images.card / images.cardHover feed the product card.
+   sizes (Update 03 §8): [{ key, label, price, mrp, compare? }], the first is the default.
    gallery entries: fit:"cover" + focus for scene images (the rest are cutouts,
    shown whole on the ivory stage); hd is the lightbox file.
    ========================================================================== */
@@ -14,6 +15,8 @@ export const PRODUCTS = [
     category:"skin", subcategory:"cleanser", ritual:"morning", tags:["bestseller"],
     benefit:"Skin brightening and anti-pigmentation", forWho:"For all skin types", size:"100 ml",
     price:649, mrp:null, priceNote:"placeholder",             // TODO(client): real price and MRP
+    sizes:[ { key:"full",    label:"100 ml",          price:649, mrp:null },
+            { key:"compact", label:"30 ml · Compact", price:249, mrp:null, compare:"assets/products/cleanser/cleanser-compact-compare.webp" } ], // TODO(client): compact size + price
     cardScale:1,
     rating:{ average:4.6, count:86, breakdown:{ 5:64, 4:15, 3:4, 2:2, 1:1 } },   // demo (CONFIG.demoReviews)
     keyIngredient:"Organic sea-buckthorn",
@@ -45,6 +48,8 @@ export const PRODUCTS = [
     category:"skin", subcategory:"lotion", ritual:"evening", tags:[],
     benefit:"Skin brightening and anti-pigmentation", forWho:"For smoother body", size:"100 ml",
     price:749, mrp:null, priceNote:"placeholder",             // TODO(client): real price and MRP
+    sizes:[ { key:"full",    label:"100 ml",          price:749, mrp:null },
+            { key:"compact", label:"30 ml · Compact", price:299, mrp:null, compare:"assets/products/lotion/lotion-compact-compare.webp" } ],   // TODO(client): compact size + price
     cardScale:1,
     rating:{ average:4.5, count:64, breakdown:{ 5:44, 4:14, 3:4, 2:1, 1:1 } },   // demo (CONFIG.demoReviews)
     keyIngredient:"Organic sea-buckthorn",
@@ -75,6 +80,8 @@ export const PRODUCTS = [
     category:"fragrance", subcategory:"body-spray", ritual:"day", tags:["bestseller", "new"],
     benefit:"Premium body spray for men", size:"150 ml",     // TODO(client): confirm
     price:899, mrp:null, priceNote:"placeholder",             // TODO(client): real price and MRP
+    sizes:[ { key:"full",    label:"150 ml",         price:899, mrp:null },
+            { key:"compact", label:"20 ml · Pocket", price:299, mrp:null, compare:"assets/products/larrive/larrive-compact-compare.webp" } ], // TODO(client): compact size + price
     cardScale:0.9,
     rating:{ average:4.4, count:112, breakdown:{ 5:72, 4:26, 3:9, 2:3, 1:2 } },  // demo (CONFIG.demoReviews)
     longevityHours:10,
@@ -108,6 +115,19 @@ export const PRODUCTS = [
     images:{ hero:"assets/products/perfume-02/perfume-02-placeholder.webp", card:"assets/products/perfume-02/perfume-02-placeholder.webp" },
     gallery:[ { src:"assets/products/perfume-02/perfume-02-placeholder.webp", alt:"Nº 2, a new fragrance (placeholder bottle)" },
               { src:"assets/rituals/ritual-04-no2.webp", alt:"Nº 2 still life", fit:"cover", focus:"75% 50%" } ] },
+
+  // Update 03 §8: the second L'Arrivé product — a placeholder until the client sends its name and details.
+  // TODO(client): real name, size, price, notes and photo; then set comingSoon:false
+  { id:"larrive-02", brand:"larrive",
+    name:"L’Arrivé (name to be revealed)", fullName:"L’Arrivé — new fragrance (name to be revealed)",
+    benefit:"A new fragrance from L’Arrivé", category:"fragrance", subcategory:"body-spray", ritual:"evening", tags:["new"],
+    size:"TBC", price:999, mrp:null, priceNote:"placeholder", comingSoon:true, cardScale:0.9, originId:"paris",
+    rating:null,
+    description:"A new fragrance from L’Arrivé. Its name, and its notes, arrive soon.",
+    details:[ ["Brand","L’Arrivé"], ["Status","Coming soon"] ],
+    features:[],
+    images:{ hero:"assets/products/larrive/larrive-02-placeholder.webp", card:"assets/products/larrive/larrive-02-placeholder.webp" },
+    gallery:[ { src:"assets/products/larrive/larrive-02-placeholder.webp", hd:"assets/products/larrive/larrive-02-placeholder.png", alt:"L’Arrivé new fragrance, placeholder bottle" } ] },
 ];
 
 /* ---------- lookups ---------- */
@@ -120,6 +140,12 @@ export const productsByBrand = (brandId) => PRODUCTS.filter((p) => p.brand === b
 export const newestProduct = () => [...PRODUCTS].reverse().find((p) => !p.comingSoon) || PRODUCTS[0];
 
 export const productURL = (id) => `product.html?id=${encodeURIComponent(id)}`;
+
+/** The sizes a product is sold in (the first is the default); products without `sizes` have one. */
+export const sizesOf = (p) => (p.sizes?.length ? p.sizes
+  : [{ key: "full", label: p.size && p.size !== "TBC" ? p.size : "", price: p.price, mrp: p.mrp ?? null }]);
+export const sizeOf = (p, key) => sizesOf(p).find((s) => s.key === key) || sizesOf(p)[0];
+export const hasCompact = (p) => sizesOf(p).some((s) => s.key === "compact");
 
 /** Category labels for menus and filters. */
 export const CATEGORY_LABELS = { skin: "Skin care", fragrance: "Fragrance" };

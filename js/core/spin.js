@@ -121,7 +121,7 @@ export function createSpin(canvas, opts = {}) {
     get frames() { return frames; },
     setFrame(i) {
       const next = ((Math.round(i) % frames) + frames) % frames;
-      if (next !== current) { current = next; opts.onFrame?.(current); }
+      if (next !== current) { current = next; canvas.dataset.frame = current; opts.onFrame?.(current); }   // data-frame: the frame on show (tests, debugging)
       draw();
     },
     progress(p) { api.setFrame(Math.min(frames - 1, Math.max(0, p * (frames - 1)))); },

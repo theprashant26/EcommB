@@ -2,7 +2,7 @@
    Shop (shop.html) — §9.2, Update 02 §8
    - Filters read from and written to the URL, so every menu link lands on a
      real result: ?brand=, ?category=skin|fragrance, ?ritual=morning|day|
-     evening|night, ?tag=bestseller|new, ?sort=featured|new|price-asc|price-desc.
+     evening|night, ?size=compact, ?tag=bestseller|new, ?sort=featured|new|price-asc|price-desc.
      One choice per group; groups combine. "All" clears the filters.
    - Chips re-lay the grid out with GSAP Flip; a sort select orders it.
    - Product cards (js/core/cards.js) and, in the featured order, a brand tile
@@ -17,7 +17,7 @@ import { initSearch } from "../core/search.js";
 import { initMotion, splitLines, whenScriptsReady, afterPaint } from "../core/motion.js";
 import { cardHTML } from "../core/cards.js";
 import { plinthSetHTML } from "../core/plinth.js";
-import { PRODUCTS, CATEGORY_LABELS, RITUAL_LABELS } from "../data/products.js";
+import { PRODUCTS, CATEGORY_LABELS, RITUAL_LABELS, hasCompact } from "../data/products.js";
 import { visibleBrands, brandURL } from "../data/brands.js";
 import { ORIGINS } from "../data/origins.js";
 import { esc, formatCoords, reducedMotion, hasGSAP, $, $$ } from "../core/format.js";
@@ -51,6 +51,9 @@ const GROUPS = [
   { key: "ritual", label: "Ritual",
     options: Object.keys(RITUAL_LABELS).filter((r) => present("ritual").has(r)).map((r) => ({ value: r, label: RITUAL_LABELS[r] })),
     test: (p, v) => p.ritual === v },
+  { key: "size", label: "Size",
+    options: products.some(hasCompact) ? [{ value: "compact", label: "Compact size" }] : [],
+    test: (p, v) => v === "compact" && hasCompact(p) },
   { key: "tag", label: "Collection",
     options: [{ value: "bestseller", label: "Bestsellers" }, { value: "new", label: "New" }]
       .filter((t) => products.some((p) => (p.tags || []).includes(t.value))),

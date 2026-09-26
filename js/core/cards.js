@@ -12,28 +12,38 @@
    ========================================================================== */
 
 import { getBrand } from "../data/brands.js";
-import { productURL } from "../data/products.js";
+import { productURL, sizesOf, sizeOf } from "../data/products.js";
 import { esc, priceHTML, ratingHTML, imageSize, imageFocus } from "./format.js";
 import { wishButtonHTML } from "./wishlist.js";
 
+/** A compact piece reads visibly smaller than its full size in a grid (Update 03 §7). */
+const COMPACT_SCALE = 0.62;
+
 /** Card markup. opts.headingLevel for the name; opts.eager for cards in the first screen (the page's LCP);
- *  opts.remove adds a "Remove" control (wishlist page). */
-export function cardHTML(p, { headingLevel = 3, eager = false, remove = false } = {}) {
+ *  opts.remove adds a "Remove" control (wishlist page); opts.size shows that size of the piece
+ *  (the compact page: its badge, price, link and Add to Cart). Listings show the default size. */
+export function cardHTML(p, { headingLevel = 3, eager = false, remove = false, size = null } = {}) {
   const brand = getBrand(p.brand);
   const h = `h${headingLevel}`;
+  const sz = size ? sizeOf(p, size) : sizesOf(p)[0];
+  const variant = size && sz.key !== sizesOf(p)[0].key;   // a non-default size is on show
   const src = p.images.card || p.images.hero;
   const alt = p.images.cardHover;
   const [w, hgt] = imageSize(src);
   const f = imageFocus(src);
-  const style = `--card-scale:${p.cardScale || 1};--cx:${f.cx};--ptop:${f.top};--pbase:${f.base};--ratio:${(w / hgt).toFixed(4)}`;
-  const url = productURL(p.id);
+  const scale = (p.cardScale || 1) * (sz.key === "compact" ? COMPACT_SCALE : 1);
+  const style = `--card-scale:${scale.toFixed(3)};--cx:${f.cx};--ptop:${f.top};--pbase:${f.base};--ratio:${(w / hgt).toFixed(4)}`;
+  const url = `${productURL(p.id)}${variant ? `&size=${encodeURIComponent(sz.key)}` : ""}`;
   const name = p.comingSoon ? p.fullName : p.name;
+  const label = variant ? `${p.fullName}, ${sz.label}` : p.fullName;
   const action = p.comingSoon
     ? `<button type="button" class="btn-maison btn-cart cp-add" data-notify="${esc(p.id)}"><span>Notify me</span></button>`
-    : `<button type="button" class="btn-maison btn-cart cp-add" data-add-to-bag="${esc(p.id)}" aria-label="Add ${esc(p.fullName)} to cart"><span>Add to Cart</span></button>`;
+    : `<button type="button" class="btn-maison btn-cart cp-add" data-add-to-bag="${esc(p.id)}"${variant ? ` data-size="${esc(sz.key)}"` : ""} aria-label="Add ${esc(label)} to cart"><span>Add to Cart</span></button>`;
+  // "Compact · 30 ml" (the size's own label, reordered: "30 ml · Compact" → "Compact · 30 ml")
+  const badge = variant ? sz.label.split(" · ").reverse().join(" · ") : "";
 
   return `
-    <article class="cp" data-product-card data-id="${esc(p.id)}" style="${style}">
+    <article class="cp${variant ? " cp--variant" : ""}" data-product-card data-id="${esc(p.id)}"${variant ? ` data-size="${esc(sz.key)}"` : ""} style="${style}">
       <div class="cp-stage" data-reveal>
         <a class="cp-media" href="${url}" tabindex="-1" aria-hidden="true" data-reveal-inner>
           <span class="cp-shadow"></span>
@@ -44,14 +54,15 @@ export function cardHTML(p, { headingLevel = 3, eager = false, remove = false } 
           <span class="cp-sheen"></span>
         </a>
         ${wishButtonHTML(p, "cp-heart")}
+        ${badge ? `<span class="cp-badge">${esc(badge)}</span>` : ""}
       </div>
       <div class="cp-body">
         <p class="t-label cp-brand">${esc(brand?.name || "")}</p>
         <${h} class="cp-name"><a href="${url}">${esc(name)}</a></${h}>
         ${p.comingSoon ? `<p class="cp-soon">Coming soon</p>` : ratingHTML(p)}
-        ${p.comingSoon ? "" : `<p class="cp-price">${priceHTML(p)}</p>`}
+        ${p.comingSoon ? "" : `<p class="cp-price">${priceHTML({ price: sz.price, mrp: sz.mrp })}</p>`}
         <div class="cp-actions">
-          <a class="cp-shop link-cta" href="${url}" aria-label="Shop Now: ${esc(p.fullName)}">Shop Now</a>
+          <a class="cp-shop link-cta" href="${url}" aria-label="Shop Now: ${esc(label)}">Shop Now</a>
           ${remove ? `<button type="button" class="btn-plain cp-remove link-draw" data-wish-remove="${esc(p.id)}">Remove<span class="visually-hidden"> ${esc(p.fullName)}</span></button>` : ""}
           <div class="cp-add-wrap">${action}</div>
         </div>

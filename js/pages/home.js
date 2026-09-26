@@ -10,21 +10,20 @@ import { initWishlist } from "../core/wishlist.js";
 import { initReveals } from "../core/reveal.js";
 import { initSearch } from "../core/search.js";
 import { initMotion, splitLines, appear, getSmoother } from "../core/motion.js";
-import { createDepth } from "../core/depth.js";
 import { createSpin, frameURL } from "../core/spin.js";
 import { createMap3d } from "../core/map3d.js";
 import { cardHTML } from "../core/cards.js";
 import { ritualRowsHTML, ritualRowsMotion } from "../core/ritual-rows.js";
 import { openLightbox } from "../core/lightbox.js";
 import { plinthSetHTML } from "../core/plinth.js";
-import { PRODUCTS, productsByBrand, productURL } from "../data/products.js";
+import { PRODUCTS, productsByBrand } from "../data/products.js";
+import { HERO } from "../data/hero.js";
+import { CATEGORIES } from "../data/categories.js";
 import { visibleBrands, brandURL } from "../data/brands.js";
 import { ORIGINS } from "../data/origins.js";
-import { esc, formatCoords, finePointer, hasGSAP, icon, $, $$ } from "../core/format.js";
+import { esc, formatCoords, finePointer, hasGSAP, icon, imageSize, reducedMotion, $, $$ } from "../core/format.js";
 
 const html = document.documentElement;
-/** The layered (desktop) hero composition; below this it stacks. Mirrors the CSS + <picture> media. */
-const LAYERED = "(min-width: 768px) and (min-aspect-ratio: 601/500)";
 
 initHeader();
 initBag();
@@ -36,24 +35,34 @@ initReveals();
    Render from data
    ========================================================================== */
 
-/** Small, first-screen thumbnail: a tube's front spin frame (~19 KB) or the bottle render. */
-const thumbOf = (p) => (p.spin ? frameURL(p.spin.path, 0) : p.images.hero);
+/* ---------- Categories You Might Like (Update 03 §3) ---------- */
 
-function renderHeroTabs() {
-  const list = $("[data-hero-tabs]");
-  if (!list) return;
-  list.innerHTML = PRODUCTS.map((p) => `
-    <li class="hero-tab">
-      <a href="${productURL(p.id)}">
-        <img src="${esc(thumbOf(p))}" alt="" width="48" height="48" loading="lazy" decoding="async">
-        <span>${esc(p.name)}</span>
-      </a>
-    </li>`).join("");
+function renderCategories() {
+  const host = $("[data-cats]");
+  if (!host) return;
+  // Two columns with staggered heights: left tall then short, right short then tall (and so on).
+  const tall = (i) => (i % 2 === 0) === (Math.floor(i / 2) % 2 === 0);
+  const tile = (c, i) => `
+    <a class="cat${tall(i) ? " is-tall" : ""}" href="${esc(c.href)}" data-reveal>
+      <span class="cat-media" data-reveal-inner>
+        <img class="cat-img" src="${esc(c.image)}" alt="" width="${imageSize(c.image)[0]}" height="${imageSize(c.image)[1]}" loading="lazy" decoding="async" style="object-position:${esc(c.pos || "50% 50%")}">
+      </span>
+      <span class="cat-scrim" aria-hidden="true"></span>
+      <span class="cat-body">
+        <h3 class="cat-title">${esc(c.title)}</h3>
+        <span class="cat-text">${esc(c.text)}</span>
+        <span class="cat-btn">Explore Collection ${icon("arrow-right")}</span>
+      </span>
+    </a>`;
+  const cols = [[], []];
+  CATEGORIES.forEach((c, i) => cols[i % 2].push(tile(c, i)));
+  host.innerHTML = cols.map((col) => `<div class="cats-col">${col.join("")}</div>`).join("");
 }
 
 function renderFour() {
   const grid = $("[data-four]");
-  if (grid) grid.innerHTML = PRODUCTS.map((p) => cardHTML(p)).join("");
+  // "Four to begin with": the first four pieces in products.js (later additions live in the shop and rooms).
+  if (grid) grid.innerHTML = PRODUCTS.slice(0, 4).map((p) => cardHTML(p)).join("");
   const coords = $("[data-four-coords]");
   if (coords) {
     const lat = (o) => `${Math.abs(o.lat).toFixed(2)}° ${o.lat >= 0 ? "N" : "S"}`;
@@ -63,7 +72,7 @@ function renderFour() {
   }
 }
 
-/* ---------- 8.3 data: the tubes that can turn (Update 02 §6.2: HD frames, rest stops) ---------- */
+/* ---------- 8.3 data: the tubes that can turn (HD frames, four rest stops; Update 03 §4: plays by itself) ---------- */
 
 const TURN_PRODUCTS = PRODUCTS.filter((p) => p.spin && !p.comingSoon);
 const TURN_LABELS = { "one-origin-face-cleanser": "Face", "one-origin-body-lotion": "Body" }; // toggle labels
@@ -79,21 +88,6 @@ function calloutsFor(p) {
     { frame: 18, icon: "map-pin", text: "Scan the code to trace your origin.", target: [0.45, 0.45], side: "right" },   // the QR on the back label
     { frame: 27, icon: "package-check", text: `${p.size}. Stands on its flip cap.`, target: [0.5, 0.86], side: "left" },
   ];
-}
-
-/* Scroll → rotation with holds: at each rest stop the tube pauses for 12% of the
-   section's scroll while that callout shows, then turns 90° to the next. */
-const HOLD = 0.12;
-const TURN = (1 - 4 * HOLD) / 4;
-function turnAt(p) {
-  let t = Math.min(1, Math.max(0, p));
-  for (let k = 0; k < 4; k += 1) {
-    if (t <= HOLD) return { frame: k * 9, stop: k };
-    t -= HOLD;
-    if (t <= TURN) return { frame: k * 9 + (9 * t) / TURN, stop: -1 };
-    t -= TURN;
-  }
-  return { frame: 36, stop: -1 };
 }
 
 function renderTurn() {
@@ -134,8 +128,7 @@ const pad2 = (n) => String(n).padStart(2, "0");
 const firstSentence = (t = "") => t.split(/(?<=\.)\s/)[0];
 
 function roomProducts(b) {
-  const list = productsByBrand(b.id);
-  return b.status === "coming" ? list : list.filter((p) => !p.comingSoon);
+  return productsByBrand(b.id);   // coming-soon pieces stand in their brand's room too (Update 03 §6)
 }
 
 function roomHTML(b, i, total) {
@@ -191,40 +184,59 @@ function renderRush() {
 
 
 /* ==========================================================================
-   8.1 Hero load sequence — the page's one orchestrated moment (≤ 1.5s).
-   SplitText splits the H1 into characters; the motion itself is CSS
-   (compositor), so it costs the main thread nothing while the page loads.
-   Runs once, outside the matchMedia contexts, so a resize never replays or
-   reverts it. CSS holds the opening states under html.motion-ok until
-   .hero.is-in is set.
+   Hero collage (Update 03 §2). The load reveal and the idle motion are CSS
+   (compositor, under html.motion-ok), so the first screen costs the main
+   thread nothing. Here: the logo's red-dot drop, pausing the idle loops when
+   the hero is off-screen or the tab is hidden, slides from js/data/hero.js,
+   and (with motion, desktop) the pointer depth in heroMotion().
    ========================================================================== */
 
 function playHeroIntro() {
   const hero = $("[data-hero]");
-  if (!hero) return;
-  if (!hasGSAP() || !html.classList.contains("motion-ok")) { hero.classList.add("is-in"); return; }
-  html.classList.add("motion-live"); // scripts arrived: stop the <head> watchdog
-  const title = $(".hero-title", hero);
+  if (!hero || !html.classList.contains("motion-ok")) return;
+  html.classList.add("motion-live");                     // scripts arrived: stop the <head> watchdog
+  $("#site-top")?.classList.add("is-dot-drop");         // the logo's red dot lands last (Update 01 §3)
+  const pause = (on) => hero.classList.toggle("is-paused", on);
+  if ("IntersectionObserver" in window) new IntersectionObserver(([e]) => pause(!e.isIntersecting)).observe(hero);
+  document.addEventListener("visibilitychange", () => pause(document.hidden));
+}
 
-  if (window.SplitText) {
-    // The H1 already carries its two lines as spans, and those spans are the
-    // masks (overflow clip in CSS). Splitting words + chars needs no line
-    // measurement, so it is cheap and never has to re-split when fonts arrive.
-    const split = SplitText.create(title, { type: "words,chars", charsClass: "char" });
-    split.chars.forEach((c, i) => c.style.setProperty("--i", i)); // stagger index for the CSS delay
-  }
-  hero.classList.add("is-playing");
-  $("#site-top")?.classList.add("is-dot-drop"); // the logo's red dot lands last (Update 01 §3)
-
-  // Hand over to the resting state once the last piece (the tabs) has settled.
-  const done = () => { hero.classList.add("is-in"); hero.classList.remove("is-playing"); };
-  $(".hero-tabs", hero).addEventListener("animationend", done, { once: true });
-  setTimeout(done, 2500); // safety net if animation events never fire
+/** More than one slide in HERO: both cards cross-fade to the next pair every 7 seconds (paused on hover). */
+function initHeroSlides() {
+  const collage = $("[data-collage]");
+  if (!collage || HERO.length < 2 || reducedMotion()) return;
+  const cards = { a: $('[data-hcard="a"]', collage), b: $('[data-hcard="b"]', collage) };
+  ["a", "b"].forEach((k) => {
+    const frame = $(".hcard-frame", cards[k]);
+    HERO.slice(1).forEach((slide) => {
+      const d = slide[k];
+      const [w, h] = imageSize(d.src);
+      frame.insertAdjacentHTML("beforeend", `<img class="hcard-img" src="${esc(d.src)}" alt="" width="${w}" height="${h}" loading="lazy" decoding="async" style="object-position:${esc(d.pos || "50% 50%")}">`);
+    });
+  });
+  let i = 0, hover = false;
+  collage.addEventListener("pointerenter", () => { hover = true; });
+  collage.addEventListener("pointerleave", () => { hover = false; });
+  setInterval(() => {
+    if (hover || document.hidden || $("[data-hero]").classList.contains("is-paused")) return;
+    i = (i + 1) % HERO.length;
+    ["a", "b"].forEach((k) => {
+      const card = cards[k], d = HERO[i][k];
+      $$(".hcard-img", card).forEach((img, n) => {
+        if (n === 0) img.style.opacity = i === 0 ? "" : "0";
+        else img.classList.toggle("is-on", n === i);
+        img.alt = n === i ? d.alt : "";
+      });
+      card.href = d.href;
+      $(".hcard-cap", card).textContent = d.caption;
+      $(".hcard-cta", card).textContent = `${d.cta} →`;
+    });
+  }, 7000);
 }
 
 /* ==========================================================================
    Boot, in stages (§12: TBT under 200 ms on a mid-range phone)
-   1. now:             header, bag, search, hero tabs, the hero load sequence
+   1. now:             header, bag, search, the hero load sequence
    2. on first intent: render the sections below the fold, then ScrollSmoother,
                        pins and scroll motion, one section per task.
                        Intent = the first scroll, touch, key or pointer move,
@@ -237,16 +249,17 @@ const yieldToMain = () => (globalThis.scheduler?.yield
   ? scheduler.yield()
   : new Promise((resolve) => setTimeout(resolve, 0)));
 
-renderHeroTabs();
 playHeroIntro();
+initHeroSlides();
 boot();
 
 async function boot() {
   await firstIntent();
-  for (const render of [renderFour, renderTurn, renderRooms, renderRush, renderRituals]) {
+  for (const render of [renderCategories, renderFour, renderTurn, renderRooms, renderRush, renderRituals]) {
     render();
     await yieldToMain();
   }
+  initHouse();
   initMotion(setupMotion);
 }
 
@@ -279,13 +292,12 @@ function setupMotion(c, ctx) {
     () => heroMotion(c, cleanups),
     () => turnMotion(c, cleanups),
     () => mapMotion(c, cleanups, later),
-    () => houseMotion(c, cleanups),
     () => arrivedMotion(c, cleanups),
     () => ritualRowsMotion($("[data-ritual-rows]"), { ctx, reduce: c.reduce }),
     () => {
       if (c.reduce) return;
       $$("[data-split]").forEach((el) => splitLines(el, { ctx }));
-      appear(".sec-head .coords, .mapsec-head p, .house-head p, .arrived-lede, .letters p, .rituals-head .t-label");
+      appear(".sec-head .coords, .mapsec-head p, .house-head p, .arrived-lede, .letters p, .rituals-head .t-label, .cats-head p");
     },
   ];
 
@@ -300,47 +312,48 @@ function setupMotion(c, ctx) {
   return () => { alive = false; cleanups.forEach((fn) => fn()); };
 }
 
-/* ---------- 8.1 hero: depth + layers separating on scroll ---------- */
+/* ---------- hero collage: pointer depth (desktop, motion) ---------- */
 
 function heroMotion(c, cleanups) {
-  const stage = $("[data-hero-stage]");
-  if (!stage || c.reduce) return;
-  const layered = matchMedia(LAYERED).matches;
-
-  if (layered) {
-    // Scroll out: each layer keeps its data-hero-speed (products 1, type .92, backdrop .85).
-    const hero = $("[data-hero]");
-    $$("[data-hero-speed]", stage).forEach((layer) => {
-      const speed = parseFloat(layer.dataset.heroSpeed);
-      if (speed === 1) return;
-      gsap.to(layer, {
-        y: () => (1 - speed) * stage.offsetHeight, ease: "none",
-        // start at scroll 0 (the hero sits just below the header)
-        scrollTrigger: { trigger: hero, start: 0, end: "bottom top", scrub: true, invalidateOnRefresh: true },
-      });
-    });
-    if (c.isDesktop) {
-      const depth = createDepth(stage, [
-        { el: $(".hero-layer--back .hero-depth", stage), depth: 6 },
-        { el: $(".hero-layer--type .hero-depth", stage), depth: 14 },
-        { el: $(".hero-layer--front .hero-depth", stage), depth: 26 },
-      ], { rotate: 2.5, rotateEl: $("[data-hero-scene]", stage) });
-      cleanups.push(depth.destroy);
-    }
-  } else {
-    // Stacked (phones): a gentle scroll parallax on the image instead of pointer depth.
-    gsap.fromTo($(".hero-layer--back .hero-depth", stage), { y: 0 }, {
-      y: -36, ease: "none",
-      scrollTrigger: { trigger: $(".hero-layer--back", stage), start: "top 70%", end: "bottom top", scrub: true },
-    });
-  }
+  const collage = $("[data-collage]");
+  if (!collage || c.reduce || !c.isDesktop || !finePointer()) return;
+  const hero = $("[data-hero]");
+  const [a, b] = $$("[data-hcard-move]", collage);
+  // Card A moves 8px and Card B 18px opposite the pointer; the collage tilts up to ±3°.
+  gsap.set(collage, { transformPerspective: 1200 });
+  const to = (el, prop, d = 0.8) => gsap.quickTo(el, prop, { duration: d, ease: "power3.out" });
+  const q = { ax: to(a, "x"), ay: to(a, "y"), bx: to(b, "x"), by: to(b, "y"), rx: to(collage, "rotationX", 1), ry: to(collage, "rotationY", 1) };
+  const move = (e) => {
+    const r = hero.getBoundingClientRect();
+    const nx = ((e.clientX - r.left) / r.width - 0.5) * 2, ny = ((e.clientY - r.top) / r.height - 0.5) * 2;
+    q.ax(-nx * 8); q.ay(-ny * 8); q.bx(-nx * 18); q.by(-ny * 18);
+    q.ry(nx * 3); q.rx(-ny * 3);
+  };
+  const leave = () => Object.values(q).forEach((fn) => fn(0));
+  hero.addEventListener("pointermove", move);
+  hero.addEventListener("pointerleave", leave);
+  cleanups.push(() => {
+    hero.removeEventListener("pointermove", move);
+    hero.removeEventListener("pointerleave", leave);
+    gsap.set([a, b, collage], { clearProps: "transform" });
+  });
 }
 
 /* ---------- 8.2 the four ---------- */
 
 // The four unveil through the shared image system (js/core/reveal.js).
 
-/* ---------- 8.3 turn it in your hand (Update 02 §6.2) ---------- */
+/* ---------- 8.3 turn it in your hand — plays by itself (Update 03 §4) ----------
+   While the section is ≥40% in view it presents the tube on its own, looping:
+   hold at 0° (2.4s, callout 1) → turn to 90° (0.9s) → hold (callout 2) → 180° →
+   270° → back to 0°. Hover pauses it (desktop); a drag turns it by hand and it
+   resumes 3s (touch: 4s) after the last drag. Pause/play, four stop dots (turn
+   and hold), a progress line for the time left at the current stop. It rests
+   off-screen, in a hidden tab, and until the frames have loaded (frame 0 shows
+   at once). Reduced motion: no autoplay; the callouts as a list, the dots as
+   manual controls. */
+
+const HOLD_S = 2.4, TURN_S = 0.9, STOPS = [0, 9, 18, 27];
 
 function turnMotion(c, cleanups) {
   const section = $("[data-turn]");
@@ -351,81 +364,38 @@ function turnMotion(c, cleanups) {
   const poster = $("[data-turn-poster]", section);
   const toggle = $("[data-turn-toggle]", section);
   const labelBtn = $("[data-read-label]", section);
+  const playBtn = $("[data-turn-play]", section);
+  const dots = $$("[data-turn-stop]", section);
+  const progress = $("[data-turn-progress]", section);
   const product = () => TURN_PRODUCTS[turnState.index];
+  const desktop = c.isDesktop;
+  const on = (el, type, fn, o) => { el?.addEventListener(type, fn, o); cleanups.push(() => el?.removeEventListener(type, fn, o)); };
 
-  const onLabel = () => readLabel(c.reduce ? $("[data-turn-static] img", section) : object);
-  labelBtn?.addEventListener("click", onLabel);
-  cleanups.push(() => labelBtn?.removeEventListener("click", onLabel));
-
-  /* Reduced motion: front and back, side by side (HD frames) */
-  if (c.reduce) {
-    const renderStatic = () => {
-      const p = product();
-      const sp = spinOf(p);
-      $("[data-turn-static]", section).innerHTML = [0, 18].map((f) => `
-        <figure>
-          <img src="${frameURL(sp.path, f)}" alt="${esc(p.fullName)}, ${f ? "back, with the trace-your-origin code" : "front"}" width="1200" height="1800" loading="lazy" decoding="async">
-          <figcaption>${f ? "The back: scan the code to trace your origin." : `${p.shortName || p.name}. ${p.benefit}.`}</figcaption>
-        </figure>`).join("");
-    };
-    renderStatic();
-    const onToggle = (e) => {
-      const btn = e.target.closest("[data-turn-index]");
-      if (!btn) return;
-      selectTurn(Number(btn.dataset.turnIndex));
-      renderStatic();
-    };
-    toggle.addEventListener("click", onToggle);
-    cleanups.push(() => toggle.removeEventListener("click", onToggle));
-    return;
-  }
+  on(labelBtn, "click", () => readLabel(object));
 
   // Never upscale a frame: the canvas's CSS height × devicePixelRatio stays ≤ 1800 (the frames' native height).
   const capHeight = () => object.style.setProperty("--turn-cap", `${Math.floor(1800 / Math.max(1, window.devicePixelRatio || 1))}px`);
   capHeight();
 
-  const pinned = c.isDesktop;
-  let active = -1;
-  let snap = null;
+  let snap = null, resumeTimer = 0;
   const spin = createSpin(canvas, {
     path: spinOf(product()).path, frames: spinOf(product()).frames,
-    mode: pinned ? "scroll" : "drag",
-    step: 9,                                    // arrow keys: to the next rest stop
-    onFrame: (f) => { if (!pinned) setActive(nearestStop(f)); },
-    onDragStart: () => snap?.kill(),
-    onDragEnd: (f) => snapTo(Math.round(f / 9) * 9, f),
-    onStep: (d) => snapTo(Math.round((spin.frame + d) / 9) * 9, spin.frame),
+    mode: "drag", step: 9,
+    onDragStart: () => { snap?.kill(); hold("drag"); setActive(-1); },
+    onDragEnd: (f) => settleAt(nearestStop(f), { from: f, resumeIn: matchMedia("(pointer: coarse)").matches ? 4000 : 3000 }),
+    onStep: (d) => settleAt(nearestStop(spin.frame + d), { from: spin.frame }),
   });
-  if (!pinned) canvas.tabIndex = 0;
+  canvas.tabIndex = 0;
+  cleanups.push(() => canvas.removeAttribute("tabindex"));
 
-  /** Phones: after a drag (or an arrow key) the tube settles on the nearest rest angle. */
-  function snapTo(target, from) {
-    snap?.kill();
-    // go the short way round
-    let to = target;
-    while (to - from > 18) to -= 36;
-    while (from - to > 18) to += 36;
-    const proxy = { f: from };
-    snap = gsap.to(proxy, { f: to, duration: 0.5, ease: "power3.out", onUpdate: () => spin.setFrame(proxy.f) });
-  }
-
-  // HD frames load only when the section is within one viewport.
-  const io = new IntersectionObserver(([e]) => {
-    if (!e.isIntersecting) return;
-    io.disconnect();
-    spin.showFirst().then(() => object.classList.add("is-drawn"));
-    spin.load();
-  }, { rootMargin: "100% 0px" });
-  io.observe(section);
-
-  /* callouts + hairline leaders */
+  /* ---- callouts + hairline leaders (desktop: beside the tube; smaller screens: under it) ---- */
   const items = () => $$(".turn-callout", section);
   const leaders = () => $$("[data-turn-leaders] g", section);
   const circDist = (a, b) => { const d = Math.abs(a - b) % 36; return Math.min(d, 36 - d); };
-  const nearestStop = (f) => [0, 9, 18, 27].reduce((best, s, i) => (circDist(f, s) < circDist(f, [0, 9, 18, 27][best]) ? i : best), 0);
+  const nearestStop = (f) => STOPS.reduce((best, st, i) => (circDist(f, st) < circDist(f, STOPS[best]) ? i : best), 0);
 
   function layoutCallouts() {
-    if (!pinned) return;
+    if (!desktop || c.reduce) return;
     const sr = stage.getBoundingClientRect();
     const or = object.getBoundingClientRect();
     const svg = $("[data-turn-leaders]", section);
@@ -449,10 +419,12 @@ function turnMotion(c, cleanups) {
     });
   }
 
+  let active = -1;
   function setActive(next) {
-    if (next === active) return;
+    dots.forEach((d, i) => d.setAttribute("aria-pressed", String(i === (next < 0 ? active : next))));
+    if (next === active || c.reduce) { if (next >= 0) active = next; return; }
     const lis = items();
-    if (!pinned) {
+    if (!desktop) {
       lis.forEach((li, i) => li.classList.toggle("is-active", i === next));
       active = next;
       return;
@@ -471,57 +443,121 @@ function turnMotion(c, cleanups) {
     active = next;
   }
 
-  let st = null;
-  const resetCallouts = () => {
+  function resetCallouts() {
     active = -1;
-    gsap.set(items(), { opacity: pinned ? 0 : "", y: 0 });
+    if (desktop && !c.reduce) {
+      gsap.set(items(), { opacity: 0, y: 0 });
+      leaders().forEach((g) => { gsap.set(g.children[0], { drawSVG: "0%" }); gsap.set(g.children[1], { opacity: 0 }); });
+    }
     layoutCallouts();
-    leaders().forEach((g) => { gsap.set(g.children[0], { drawSVG: "0%" }); gsap.set(g.children[1], { opacity: 0 }); });
-    setActive(pinned ? turnAt(st ? st.progress : 0).stop : nearestStop(spin.frame));
-  };
-
-  if (pinned) {
-    st = ScrollTrigger.create({
-      trigger: section, start: "top top", end: "+=320%", pin: true, scrub: 0.6,
-      onUpdate: (self) => {
-        const t = turnAt(self.progress);
-        spin.setFrame(t.frame);
-        setActive(t.stop);
-      },
-      onRefresh: () => { layoutCallouts(); },
-    });
+    if (!c.reduce) setActive(0);          // every presentation starts at the front with its first callout
   }
-  resetCallouts();
 
-  /* Face / Body: cross-fade (0.4s) and keep the same angle */
-  const onToggle = (e) => {
+  /* ---- reduced motion: frame 0, callouts as a list, dots turn by hand ---- */
+  if (c.reduce) {
+    spin.showFirst().then(() => object.classList.add("is-drawn"));
+    dots.forEach((d, i) => on(d, "click", () => { spin.setFrame(STOPS[i]); setActive(i); }));
+    setActive(0);
+    on(toggle, "click", (e) => {
+      const btn = e.target.closest("[data-turn-index]");
+      if (!btn) return;
+      selectTurn(Number(btn.dataset.turnIndex));
+      spin.setPath(spinOf(product()).path).then(() => spin.setFrame(0));
+      setActive(0);
+    });
+    cleanups.push(() => spin.destroy());
+    return;
+  }
+
+  /* ---- the presentation: one looping timeline; its playhead is the state ---- */
+  const reasons = new Set(["loading", "offscreen"]);   // why it is not playing
+  let userPaused = false;
+  const proxy = { f: 0 };
+  const tl = gsap.timeline({ repeat: -1, paused: true });
+  STOPS.forEach((st, k) => {
+    tl.addLabel(`s${k}`)
+      .call(() => setActive(k))
+      .fromTo(progress, { scaleX: 1 }, { scaleX: 0, duration: HOLD_S, ease: "none", immediateRender: false })   // time left at this stop
+      .call(() => setActive(-1))
+      .fromTo(proxy, { f: st }, { f: st + 9, duration: TURN_S, ease: "power2.inOut", immediateRender: false, onUpdate: () => spin.setFrame(proxy.f) });
+  });
+  cleanups.push(() => tl.kill());
+
+  function update() {
+    const play = reasons.size === 0 && !userPaused;
+    if (play && tl.paused()) tl.play();
+    if (!play && !tl.paused()) tl.pause();
+    playBtn.setAttribute("aria-pressed", String(userPaused));
+    playBtn.setAttribute("aria-label", userPaused ? "Play the turn" : "Pause the turn");
+  }
+  function hold(reason) { clearTimeout(resumeTimer); reasons.add(reason); update(); }
+  function release(reason) { reasons.delete(reason); update(); }
+
+  /** Turn to stop k (the short way round), show its callout, and park the playhead there. */
+  function settleAt(k, { from = spin.frame, resumeIn = 0 } = {}) {
+    snap?.kill();
+    tl.pause(`s${k}`);                   // playhead at the start of that stop's hold
+    let to = STOPS[k];
+    while (to - from > 18) to -= 36;
+    while (from - to > 18) to += 36;
+    const p2 = { f: from };
+    snap = gsap.to(p2, { f: to, duration: 0.6, ease: "power3.out", onUpdate: () => spin.setFrame(p2.f) });
+    setActive(k);
+    gsap.set(progress, { scaleX: 1 });
+    if (resumeIn) { clearTimeout(resumeTimer); resumeTimer = setTimeout(() => release("drag"), resumeIn); }
+    else update();
+  }
+  cleanups.push(() => { clearTimeout(resumeTimer); snap?.kill(); });
+
+  // Frame 0 at once; the presentation starts only when all frames are in.
+  spin.showFirst().then(() => object.classList.add("is-drawn"));
+  let loadIO = new IntersectionObserver(([e]) => {
+    if (!e.isIntersecting) return;
+    loadIO.disconnect();
+    spin.load().then(() => { resetCallouts(); release("loading"); });
+  }, { rootMargin: "100% 0px" });
+  loadIO.observe(section);
+  // ≥40% in view to play
+  const viewIO = new IntersectionObserver(([e]) => (e.intersectionRatio >= 0.4 ? release("offscreen") : hold("offscreen")), { threshold: [0, 0.4] });
+  viewIO.observe(section);
+  cleanups.push(() => { loadIO.disconnect(); viewIO.disconnect(); });
+  on(document, "visibilitychange", () => (document.hidden ? hold("hidden") : release("hidden")));
+  if (finePointer()) {
+    on(stage, "pointerenter", (e) => { if (e.pointerType === "mouse") hold("hover"); });
+    on(stage, "pointerleave", (e) => { if (e.pointerType === "mouse") release("hover"); });
+  }
+  on(playBtn, "click", () => { userPaused = !userPaused; clearTimeout(resumeTimer); reasons.delete("drag"); update(); });
+  // A stop dot turns to that angle and holds there (autoplay pauses until play is pressed).
+  dots.forEach((d, i) => on(d, "click", () => { userPaused = true; settleAt(i); update(); }));
+
+  /* Face / Body: cross-fade and restart from 0° */
+  on(toggle, "click", (e) => {
     const btn = e.target.closest("[data-turn-index]");
     if (!btn || Number(btn.dataset.turnIndex) === turnState.index) return;
     const i = Number(btn.dataset.turnIndex);
+    hold("switch");
     gsap.to(object, {
-      opacity: 0, duration: 0.2, ease: "none", overwrite: true,
+      opacity: 0, duration: 0.25, ease: "none", overwrite: true,
       onComplete: () => {
         selectTurn(i);
-        const p = product();
-        poster.src = frameURL(p.spin.path, 0);
+        poster.src = frameURL(product().spin.path, 0);
         resetCallouts();
-        spin.setPath(spinOf(p).path).then(() => {
-          gsap.to(object, { opacity: 1, duration: 0.2, ease: "none" });
-          spin.load();
+        tl.pause("s0");
+        spin.setPath(spinOf(product()).path).then(() => {
+          spin.setFrame(0);
+          gsap.to(object, { opacity: 1, duration: 0.25, ease: "none" });
+          spin.load().then(() => release("switch"));
         });
       },
     });
-  };
-  toggle.addEventListener("click", onToggle);
+  });
+
   const onResize = () => { capHeight(); layoutCallouts(); };
-  window.addEventListener("resize", onResize);
+  on(window, "resize", onResize);
+  resetCallouts();
   cleanups.push(() => {
-    toggle.removeEventListener("click", onToggle);
-    window.removeEventListener("resize", onResize);
-    io.disconnect();
-    snap?.kill();
     spin.destroy();
-    canvas.removeAttribute("tabindex");
+    gsap.set(progress, { clearProps: "transform" });
     items().forEach((li) => { li.classList.remove("is-active"); li.style.left = li.style.top = ""; });
   });
 }
@@ -540,41 +576,59 @@ function getMap() {
   return getMap.promise;
 }
 
+/* Update 03 §5: no pin, no scrub. When the section is 35% in view the journey plays once
+   (~5.5s: the plane tilts, the routes draw, the pins drop, the story cards slide in); then the
+   map sways gently with soft pulsing pins, and "Replay the journey" plays it again. */
 function mapMotion(c, cleanups, later) {
   const section = $("[data-mapsec]");
   if (!section) return;
   const wrap = $("[data-map-wrap]", section);
-  const cards = { paris: $('[data-route-card="paris"]', section), leh: $('[data-route-card="leh"]', section) };
+  const cards = $$("[data-route-card]", section);
+  const replay = $("[data-map-replay]", section);
 
   if (c.reduce) {
     later(getMap(), (map) => map.finalState({ tilt: 0 }));
     return;
   }
-
-  // The ScrollTrigger (and its pin) exists now, in page order; the timeline fills once the map files arrive.
-  const tl = gsap.timeline();
-  const st = ScrollTrigger.create(c.isDesktop
-    ? { trigger: section, start: "top top", end: "+=250%", pin: true, scrub: 1, animation: tl }
-    : { trigger: wrap, start: "top 85%", end: "center 40%", scrub: 1, animation: tl });
-
   later(getMap(), (map) => {
-    map.timeline({ tl, tilt: c.isDesktop ? 52 : 38, rotZ: c.isDesktop ? -6 : -3 });
-    if (c.isDesktop) {
-      // Story cards slide in beside the map as their route completes. Opacity only (not
-      // visibility), so their links stay in the tab order; focusing one scrolls to the end of
-      // the pin, where both cards are shown.
-      gsap.set(Object.values(cards), { opacity: 0, x: -32 });
-      tl.to(cards.paris, { opacity: 1, x: 0, duration: 0.35, ease: "power4.out" }, "paris-done");
-      tl.to(cards.leh, { opacity: 1, x: 0, duration: 0.35, ease: "power4.out" }, "leh-done");
-      const onFocus = () => setTimeout(() => {
-        if (getSmoother()) getSmoother().scrollTo(st.end - 1, true); else window.scrollTo(0, st.end - 1);
-      }, 0);
-      Object.values(cards).forEach((card) => card.addEventListener("focusin", onFocus));
-      cleanups.push(() => Object.values(cards).forEach((card) => card.removeEventListener("focusin", onFocus)));
-    }
-    map.pulse(["leh", "paris", "delhi"]);
-    tl.progress(st.progress);
+    const tilt = c.isDesktop ? 52 : 40, rotZ = c.isDesktop ? -6 : -4;
+    const tl = map.journey({ tilt, rotZ });
+    tl.fromTo(cards, { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.6, stagger: 0.15, ease: "power3.out" }, "pins-done-=0.1");
+    let sway = null, pulse = null, visible = false, played = false;
+    const idle = () => { if (!sway) return; const run = visible && !document.hidden; sway.paused(!run); pulse.paused(!run); };
+    tl.eventCallback("onComplete", () => {
+      sway = map.sway({ rotZ });
+      pulse = map.pulse();
+      replay.hidden = false;
+      idle();
+    });
+    const io = new IntersectionObserver(([e]) => {
+      visible = e.intersectionRatio >= 0.35;
+      if (visible && !played) { played = true; tl.play(0); }
+      idle();
+    }, { threshold: [0, 0.35] });
+    io.observe(section);
+    const onVis = () => idle();
+    document.addEventListener("visibilitychange", onVis);
+    const onReplay = () => {
+      sway?.kill(); pulse?.kill(); sway = pulse = null;
+      replay.hidden = true;
+      tl.play(0);
+    };
+    replay.addEventListener("click", onReplay);
+    // Keyboard: a story card receiving focus finishes the journey, so it is never invisible.
+    const onFocus = () => { played = true; if (tl.progress() < 1) tl.progress(1); };   // and it must not restart under the focus
+    cards.forEach((card) => card.addEventListener("focusin", onFocus));
     if (c.isDesktop && finePointer()) cleanups.push(crosshair(map, wrap));
+    cleanups.push(() => {
+      io.disconnect();
+      document.removeEventListener("visibilitychange", onVis);
+      replay.removeEventListener("click", onReplay);
+      cards.forEach((card) => card.removeEventListener("focusin", onFocus));
+      tl.kill(); sway?.kill(); pulse?.kill();
+      replay.hidden = true;
+      gsap.set(cards, { clearProps: "opacity,transform" });
+    });
   });
 }
 
@@ -602,66 +656,148 @@ function crosshair(map, wrap) {
   return () => { wrap.removeEventListener("pointermove", move); wrap.removeEventListener("pointerleave", leave); leave(); };
 }
 
-/* ---------- 8.5 the house ---------- */
+/* ---------- 8.5 the house — an auto-advancing, looping carousel (Update 03 §6) ----------
+   Every 5s it moves to the next room (0.9s). It loops seamlessly through a clone of
+   the last room before the first and of the first after the last. Prev/next, dots,
+   the "1 of 3" counter, a thin progress line; swipe or drag with a snap; ←/→ when
+   focused. It rests on hover or focus, off-screen and in a hidden tab. Reduced
+   motion: no autoplay and no sliding (the controls still work). */
 
-function houseMotion(c, cleanups) {
-  const section = $("[data-house]");
-  if (!section) return;
-  const track = $("[data-rooms]", section);
-  const viewport = $(".house-viewport", section);
+const HOUSE_EVERY = 5000;
+
+function initHouse() {
+  const root = $("[data-carousel]");
+  const viewport = $("[data-carousel-viewport]", root);
+  const track = $("[data-rooms]", root);
+  if (!root || !track) return;
   const rooms = $$(".room", track);
+  const n = rooms.length;
+  const indexEl = $("[data-room-index]", root);
+  $("[data-room-total]", root).textContent = n;
+  const dotsHost = $("[data-house-dots]", root);
+  const bar = $("[data-house-progress]", root);
+  const still = () => reducedMotion();
 
-  if (c.reduce) return; // stacked, final states (CSS)
+  rooms.forEach((r, k) => {
+    r.setAttribute("role", "group");
+    r.setAttribute("aria-roledescription", "slide");
+    r.setAttribute("aria-label", `${k + 1} of ${n}: ${r.getAttribute("aria-label")}`);
+  });
+  dotsHost.innerHTML = rooms.map((r, k) => `<button type="button" class="house-dot" data-house-dot="${k}" aria-label="Show ${esc(r.getAttribute("aria-label").split(": ")[1])}"></button>`).join("");
+  if (n < 2) { $(".house-controls", root).hidden = true; rooms[0]?.classList.add("is-active"); return; }
 
-  let horizontal = null;
-  if (c.isDesktop) {
-    const distance = () => Math.max(0, track.scrollWidth - viewport.clientWidth);
-    horizontal = gsap.to(track, {
-      x: () => -distance(), ease: "none",
-      scrollTrigger: {
-        trigger: section, start: "top top", end: () => `+=${distance()}`,
-        pin: true, scrub: 1, invalidateOnRefresh: true,
-      },
-    });
+  // Seamless loop: [clone of last, ...rooms, clone of first]
+  const cloneOf = (r) => {
+    const c = r.cloneNode(true);
+    c.classList.add("is-clone");
+    c.setAttribute("aria-hidden", "true");
+    c.inert = true;
+    c.removeAttribute("data-room");
+    return c;
+  };
+  track.prepend(cloneOf(rooms[n - 1]));
+  track.append(cloneOf(rooms[0]));
+  const all = $$(".room", track);
+  let i = 1;                                             // position in `all`
+  const real = () => ((i - 1 + n) % n);                  // 0-based room index
 
-    // Keyboard: tabbing into a room scrolls the page to where the track shows that room.
-    // (The browser also scrolls clipped ancestors sideways to reveal focus; undo that, the
-    // pin does the moving.)
-    const unscroll = (el) => { for (let n = el; n && n !== section.parentElement; n = n.parentElement) if (n.scrollLeft) n.scrollLeft = 0; };
-    const onFocus = (e) => {
-      const room = e.target.closest(".room");
-      if (!room) return;
-      unscroll(e.target);
-      const st = horizontal.scrollTrigger;
-      const d = distance();
-      const x = Math.min(d, Math.max(0, room.offsetLeft - (viewport.clientWidth - room.offsetWidth) / 2));
-      const y = st.start + (d ? x / d : 0) * (st.end - st.start);
-      setTimeout(() => {
-        unscroll(e.target);
-        if (getSmoother()) getSmoother().scrollTo(y, true); else window.scrollTo(0, y);
-      }, 0);
-    };
-    track.addEventListener("focusin", onFocus);
-    cleanups.push(() => track.removeEventListener("focusin", onFocus));
+  const EASE = "cubic-bezier(.645,.045,.355,1)";        // power3.inOut
+  const xOf = (k) => -(all[k].offsetLeft - all[0].offsetLeft);
+  const place = (k, animate) => {
+    track.style.transition = animate && !still() ? `transform .9s ${EASE}` : "none";
+    track.style.transform = `translate3d(${xOf(k)}px,0,0)`;
+  };
+
+  function paint() {
+    all.forEach((r, k) => r.classList.toggle("is-active", k === i || (i === n + 1 && k === 1) || (i === 0 && k === n)));
+    indexEl.textContent = real() + 1;
+    $$(".house-dot", dotsHost).forEach((d, k) => (k === real() ? d.setAttribute("aria-current", "true") : d.removeAttribute("aria-current")));
+    // As a room becomes the active one, its products rise 16px into place.
+    if (hasGSAP() && !still()) gsap.fromTo($$(".room-prod", all[i]), { y: 16 }, { y: 0, duration: 0.9, ease: "power3.out", overwrite: true });
   }
 
-  // Triggers inside the moving track use containerAnimation; stacked rooms use plain scroll.
-  const within = (room, vars) => ({ trigger: room, ...(horizontal ? { containerAnimation: horizontal } : {}), ...vars });
-  const arriving = horizontal
-    ? { start: "left right", end: "center 55%", scrub: true }       // the last room stops just right of centre
-    : { start: "top bottom", end: "center center", scrub: true };
+  let settleTimer = 0;
+  function go(k, { animate = true } = {}) {
+    i = Math.max(0, Math.min(n + 1, k));
+    place(i, animate);
+    paint();
+    elapsed = 0;
+    clearTimeout(settleTimer);
+    // On a clone: jump (no animation) to the real room it copies, once the slide has finished.
+    if (i === 0 || i === n + 1) settleTimer = setTimeout(() => { i = i === 0 ? n : 1; place(i, false); paint(); }, animate && !still() ? 920 : 0);
+  }
+  const next = () => go(i + 1);
+  const prev = () => go(i - 1);
 
-  rooms.forEach((room) => {
-    // As the room comes to the centre, the products rise 24px into place and the plinth's shadow tightens.
-    gsap.fromTo($$(".room-prod", room), { y: 24 }, { y: 0, ease: "none", scrollTrigger: within(room, arriving) });
-    const shadow = $("[data-plinth-shadow]", room);
-    if (shadow) gsap.fromTo(shadow, { scaleX: 1.18, opacity: 0.45 }, { scaleX: 1, opacity: 1, ease: "none", scrollTrigger: within(room, arriving) });
+  /* autoplay with a pausable clock (drives the progress line) */
+  const reasons = new Set(["offscreen"]);
+  let elapsed = 0, last = 0, raf = 0;
+  const running = () => !still() && reasons.size === 0;
+  function tick(t) {
+    raf = 0;
+    if (!running()) { last = 0; return; }
+    if (last) elapsed += t - last;
+    last = t;
+    bar.style.transform = `scaleX(${Math.min(1, elapsed / HOUSE_EVERY)})`;
+    if (elapsed >= HOUSE_EVERY) next();
+    raf = requestAnimationFrame(tick);
+  }
+  const kick = () => { if (running() && !raf) { last = 0; raf = requestAnimationFrame(tick); } };
+  const hold = (r) => { reasons.add(r); };
+  const release = (r) => { reasons.delete(r); kick(); };
+
+  root.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") hold("hover"); });
+  root.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") release("hover"); });
+  root.addEventListener("focusin", () => hold("focus"));
+  root.addEventListener("focusout", (e) => { if (!root.contains(e.relatedTarget)) release("focus"); });
+  new IntersectionObserver(([e]) => (e.isIntersecting ? release("offscreen") : hold("offscreen")), { threshold: 0.35 }).observe(root);
+  document.addEventListener("visibilitychange", () => (document.hidden ? hold("hidden") : release("hidden")));
+
+  /* controls */
+  $("[data-house-next]", root).addEventListener("click", next);
+  $("[data-house-prev]", root).addEventListener("click", prev);
+  dotsHost.addEventListener("click", (e) => { const d = e.target.closest("[data-house-dot]"); if (d) go(Number(d.dataset.houseDot) + 1); });
+  root.addEventListener("keydown", (e) => {
+    if (e.target.closest("input, textarea, select")) return;
+    if (e.key === "ArrowRight") { e.preventDefault(); next(); }
+    if (e.key === "ArrowLeft") { e.preventDefault(); prev(); }
+  });
+  // Tabbing into a room that is not the active one brings it forward (clipped ancestors must not scroll).
+  track.addEventListener("focusin", (e) => {
+    const room = e.target.closest(".room");
+    viewport.scrollLeft = 0;
+    const k = all.indexOf(room);
+    if (k > 0 && k <= n && k !== i) go(k);
   });
 
-  // Nº 2: soft focus that sharpens as the room centres
-  $$(".room--coming .room-prod img", track).forEach((img) => {
-    gsap.fromTo(img, { filter: "blur(6px)" }, { filter: "blur(0px)", ease: "none", scrollTrigger: within(img.closest(".room"), arriving) });
+  /* swipe / drag with a snap */
+  let startX = 0, dx = 0, dragging = false, moved = false, pid = null;
+  viewport.addEventListener("dragstart", (e) => e.preventDefault());   // images and links must not start a native drag (it cancels the pointer)
+  viewport.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    startX = e.clientX; dx = 0; dragging = true; moved = false; pid = e.pointerId;
+    hold("drag");
   });
+  viewport.addEventListener("pointermove", (e) => {
+    if (!dragging || e.pointerId !== pid) return;
+    dx = e.clientX - startX;
+    if (!moved && Math.abs(dx) > 8) { moved = true; viewport.setPointerCapture(pid); viewport.classList.add("is-dragging"); }
+    if (moved) { track.style.transition = "none"; track.style.transform = `translate3d(${xOf(i) + dx}px,0,0)`; }
+  });
+  const end = () => {
+    if (!dragging) return;
+    dragging = false;
+    viewport.classList.remove("is-dragging");
+    if (moved) { if (dx < -60) next(); else if (dx > 60) prev(); else go(i); }
+    release("drag");
+  };
+  viewport.addEventListener("pointerup", end);
+  viewport.addEventListener("pointercancel", end);
+  // A drag must not also follow the link it started on.
+  viewport.addEventListener("click", (e) => { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true);
+
+  addEventListener("resize", () => place(i, false));
+  go(1, { animate: false });
 }
 
 /* ---------- 8.6 "Arrived." ---------- */
