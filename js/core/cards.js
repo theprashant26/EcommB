@@ -14,7 +14,7 @@
 import { getBrand } from "../data/brands.js";
 import { CONFIG } from "../data/config.js";
 import { productURL, isCombo, comboWorth, comboSaving, comboPieces, brandNameOf } from "../data/products.js";
-import { esc, priceHTML, ratingHTML, imageSize, imageFocus, formatPrice } from "./format.js";
+import { esc, priceHTML, ratingHTML, imageSize, imageFocus, formatPrice, srcsetAttr, SIZES } from "./format.js";
 import { wishButtonHTML } from "./wishlist.js";
 
 /** A combo's price (Update 03b): the set price, its struck worth (the pieces bought one by one) and
@@ -29,7 +29,7 @@ export function comboPriceHTML(p, { long = false } = {}) {
     : "");
 }
 
-/** Card markup. opts.headingLevel for the name; opts.eager for cards in the first screen (the page's LCP);
+/** Card markup. opts.headingLevel for the name; opts.eager for cards in the first screen ("high" for the page's LCP image, true for the rest of that screen);
  *  opts.remove adds a "Remove" control (wishlist page). Combos carry a "Combo · 2 pieces" badge. */
 export function cardHTML(p, { headingLevel = 3, eager = false, remove = false } = {}) {
   const h = `h${headingLevel}`;
@@ -52,8 +52,8 @@ export function cardHTML(p, { headingLevel = 3, eager = false, remove = false } 
         <a class="cp-media" href="${url}" tabindex="-1" aria-hidden="true" data-reveal-inner>
           <span class="cp-shadow"></span>
           <span class="cp-prod">
-            <img class="cp-img" src="${esc(src)}" alt="" width="${w}" height="${hgt}" ${eager ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async">
-            ${alt ? `<img class="cp-img cp-img--alt" src="${esc(alt)}" alt="" width="${imageSize(alt)[0]}" height="${imageSize(alt)[1]}" loading="lazy" decoding="async">` : ""}
+            <img class="cp-img" src="${esc(src)}"${srcsetAttr(src, SIZES.card)} alt="" width="${w}" height="${hgt}" ${eager ? (eager === "high" ? 'fetchpriority="high"' : "") : 'loading="lazy"'} decoding="async">
+            ${alt ? `<img class="cp-img cp-img--alt" src="${esc(alt)}"${srcsetAttr(alt, SIZES.card)} alt="" width="${imageSize(alt)[0]}" height="${imageSize(alt)[1]}" loading="lazy" decoding="async">` : ""}
           </span>
           <span class="cp-sheen"></span>
         </a>

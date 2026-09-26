@@ -6,7 +6,7 @@
 
 import { PRODUCTS, productURL, productsByBrand, isCombo, comboItems, brandNameOf } from "../data/products.js";
 import { visibleBrands, getBrand, brandURL } from "../data/brands.js";
-import { esc, normalize, $, $$, hasGSAP, reducedMotion } from "./format.js";
+import { esc, normalize, $, $$, hasGSAP, reducedMotion, thumbOf } from "./format.js";
 import { cardHTML } from "./cards.js";
 import { pauseScroll } from "./motion.js";
 
@@ -76,7 +76,7 @@ function render() {
     <li class="search-result">
       <a href="${e.url}">
         <span class="search-thumb">${e.img
-          ? `<img src="${esc(e.img)}" alt="" width="56" height="72" loading="lazy" decoding="async">`
+          ? `<img src="${esc(thumbOf(e.img))}" alt="" width="56" height="72" loading="lazy" decoding="async">`
           : ""}</span>
         <span class="search-text">
           <span class="search-title">${esc(e.title)}</span>

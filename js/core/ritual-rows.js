@@ -12,7 +12,7 @@
 
 import { RITUALS } from "../data/rituals.js";
 import { getProduct, productURL } from "../data/products.js";
-import { esc, icon, imageSize, $, $$ } from "./format.js";
+import { esc, icon, imageSize, $, $$, srcsetAttr, SIZES } from "./format.js";
 import { splitLines, loadPlugin } from "./motion.js";
 
 /** Rows markup. headingLevel: 3 under a section H2 (home), 2 on rituals.html. */
@@ -30,7 +30,7 @@ export function ritualRowsHTML({ headingLevel = 3 } = {}) {
     return `
       <article class="rrow rrow--${side}" data-rrow style="--ar:${w} / ${hgt}">
         <div class="rrow-media">
-          <img class="rrow-img" src="${esc(r.image)}" alt="" width="${w}" height="${hgt}" loading="lazy" decoding="async" data-rrow-img>
+          <img class="rrow-img" src="${esc(r.image)}"${srcsetAttr(r.image, SIZES.wide)} alt="" width="${w}" height="${hgt}" loading="lazy" decoding="async" data-rrow-img>
         </div>
         <div class="wrap rrow-inner">
           <div class="rrow-text">

@@ -21,7 +21,7 @@ import { HERO } from "../data/hero.js";
 import { CATEGORIES } from "../data/categories.js";
 import { visibleBrands, brandURL } from "../data/brands.js";
 import { ORIGINS } from "../data/origins.js";
-import { esc, formatCoords, finePointer, hasGSAP, icon, imageSize, reducedMotion, $, $$, cssReady } from "../core/format.js";
+import { esc, formatCoords, finePointer, hasGSAP, icon, imageSize, reducedMotion, $, $$, cssReady, srcsetAttr, SIZES } from "../core/format.js";
 
 await cssReady();   // Update 04: the full stylesheet arrives without blocking; render once it applies
 
@@ -47,7 +47,7 @@ function renderCategories() {
   const tile = (c, i) => `
     <a class="cat${tall(i) ? " is-tall" : ""}" href="${esc(c.href)}" data-reveal>
       <span class="cat-media" data-reveal-inner>
-        <img class="cat-img" src="${esc(c.image)}" alt="" width="${imageSize(c.image)[0]}" height="${imageSize(c.image)[1]}" loading="lazy" decoding="async" style="object-position:${esc(c.pos || "50% 50%")}">
+        <img class="cat-img" src="${esc(c.image)}"${srcsetAttr(c.image, SIZES.tile)} alt="" width="${imageSize(c.image)[0]}" height="${imageSize(c.image)[1]}" loading="lazy" decoding="async" style="object-position:${esc(c.pos || "50% 50%")}">
       </span>
       <span class="cat-scrim" aria-hidden="true"></span>
       <span class="cat-body">
@@ -213,7 +213,7 @@ function initHeroSlides() {
     HERO.slice(1).forEach((slide) => {
       const d = slide[k];
       const [w, h] = imageSize(d.src);
-      frame.insertAdjacentHTML("beforeend", `<img class="hcard-img" src="${esc(d.src)}" alt="" width="${w}" height="${h}" loading="lazy" decoding="async" style="object-position:${esc(d.pos || "50% 50%")}">`);
+      frame.insertAdjacentHTML("beforeend", `<img class="hcard-img" src="${esc(d.src)}"${srcsetAttr(d.src, k === "a" ? SIZES.heroA : SIZES.heroB)} alt="" width="${w}" height="${h}" loading="lazy" decoding="async" style="object-position:${esc(d.pos || "50% 50%")}">`);
     });
   });
   let i = 0, hover = false;

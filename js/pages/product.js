@@ -30,7 +30,7 @@ import { CONFIG } from "../data/config.js";
 import { PRODUCTS, COMBOS, getProduct, productURL, sizesOf, isCombo, comboItems, comboWorth, combosWith, brandNameOf } from "../data/products.js";
 import { getBrand, brandURL } from "../data/brands.js";
 import { ORIGINS, BATCHES, ARRIVAL_ORIGIN_ID } from "../data/origins.js";
-import { esc, formatPrice, formatCoords, imageSize, icon, priceHTML, reducedMotion, $, $$, cssReady } from "../core/format.js";
+import { esc, formatPrice, formatCoords, imageSize, icon, priceHTML, reducedMotion, srcsetAttr, thumbOf, SIZES, $, $$, cssReady } from "../core/format.js";
 
 await cssReady();   // Update 04: the full stylesheet arrives without blocking; render once it applies
 
@@ -84,11 +84,19 @@ const galleryOf = (p) => {
 /** The images (not the 360° tile) — what the lightbox shows. */
 const photos = (p) => galleryOf(p).filter((g) => g.src);
 
+/** A cut-out on the 4:5 stage is drawn inside 82% × 86% of it: its width is the stage's times k. */
+function pdpSizes(src) {
+  const [w, h] = imageSize(src);
+  const k = Math.min(0.82, 1.075 * (w / h));
+  // scale each entry's width, not its media condition: "(max-width: 991px) 92vw" → "(max-width: 991px) 51vw"
+  return SIZES.pdp.split(", ").map((part) => part.replace(/(\d+)(vw|px)$/, (_m, n, u) => `${Math.round(n * k)}${u}`)).join(", ");
+}
+
 function galleryHTML(p) {
   const items = galleryOf(p);
   const thumb = (g, i) => g.type === "360"
     ? `<button type="button" class="pdp-thumb pdp-thumb--360" data-go="${i}" aria-label="Turn it through 360 degrees">${icon("rotate-3d")}<span>360°</span></button>`
-    : `<button type="button" class="pdp-thumb" data-go="${i}" aria-label="Show image ${i + 1}: ${esc(g.alt)}"><img src="${esc(g.src)}" alt="" width="${imageSize(g.src)[0]}" height="${imageSize(g.src)[1]}" loading="lazy" fetchpriority="low" decoding="async"${g.fit === "cover" ? ` style="object-fit:cover;object-position:${esc(g.focus || "50% 50%")}"` : ""}></button>`;
+    : `<button type="button" class="pdp-thumb" data-go="${i}" aria-label="Show image ${i + 1}: ${esc(g.alt)}"><img src="${esc(thumbOf(g.src))}" alt="" width="${imageSize(g.src)[0]}" height="${imageSize(g.src)[1]}" loading="lazy" fetchpriority="low" decoding="async"${g.fit === "cover" ? ` style="object-fit:cover;object-position:${esc(g.focus || "50% 50%")}"` : ""}></button>`;
   let photo = -1;
   const slide = (g, i) => {
     if (g.type === "360") {
@@ -105,7 +113,7 @@ function galleryHTML(p) {
     return `
       <div class="pdp-slide" data-slide="${i}" role="group" aria-roledescription="slide" aria-label="${i + 1} of ${items.length}">
         <button type="button" class="pdp-open${cover ? " is-cover" : ""}" data-open="${photo}" aria-label="Open full screen: ${esc(g.alt)}">
-          <img src="${esc(g.src)}" alt="${esc(g.alt)}" width="${w}" height="${h}" ${i === 0 ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async"${cover ? ` style="object-position:${esc(g.focus || "50% 50%")}"` : ""}${i === 0 ? ' data-hero-img' : ""}>
+          <img src="${esc(g.src)}"${srcsetAttr(g.src, cover ? SIZES.pdp : pdpSizes(g.src))} alt="${esc(g.alt)}" width="${w}" height="${h}" ${i === 0 ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async"${cover ? ` style="object-position:${esc(g.focus || "50% 50%")}"` : ""}${i === 0 ? ' data-hero-img' : ""}>
         </button>
       </div>`;
   };
@@ -206,10 +214,11 @@ function comboHTML(p) {
           ${comboItems(p).map(({ product: x, qty }) => {
             const img = x.images.card || x.images.hero;
             const [w, h] = imageSize(img);
+            const thumb = thumbOf(img);
             return `
           <li class="combo-item">
             <a class="combo-link" href="${productURL(x.id)}">
-              <span class="combo-thumb"><img src="${esc(img)}" alt="" width="${w}" height="${h}" loading="lazy" decoding="async"></span>
+              <span class="combo-thumb"><img src="${esc(thumb)}" alt="" width="${w}" height="${h}" loading="lazy" decoding="async"></span>
               <span class="combo-info">
                 <span class="t-label combo-brand">${esc(brandNameOf(x, getBrand))}</span>
                 <span class="combo-name">${qty > 1 ? `${qty} × ` : ""}${esc(x.name)}</span>
@@ -391,7 +400,7 @@ function renderProduct(p) {
     <div class="pdp-below" data-pdp-below></div>`;
   const hero = $("[data-hero-img]", root);
   if (pre && hero && pre.getAttribute("src") === hero.getAttribute("src")) {
-    [...hero.attributes].forEach((a) => pre.setAttribute(a.name, a.value));
+    [...hero.attributes].forEach((a) => { if (!(pre.hasAttribute(a.name) && /^(srcset|sizes)$/.test(a.name))) pre.setAttribute(a.name, a.value); });
     pre.removeAttribute("data-lcp-img");
     hero.replaceWith(pre);                  // same element, same decoded image: no second paint
   }

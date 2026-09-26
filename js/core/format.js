@@ -2,6 +2,7 @@
    Formatting + tiny DOM helpers shared by every module.
    ========================================================================== */
 
+import { IMAGE_VARIANTS } from "../data/image-variants.js";
 import { CONFIG } from "../data/config.js";
 
 let priceFormatter; // created on first use: building an Intl formatter is not free at load
@@ -130,6 +131,31 @@ export function imageFocus(src = "") {
  * which the inline critical CSS covers). Pages await it before rendering or measuring anything,
  * so nothing is laid out unstyled. Gives up after 8 s (a failed stylesheet must not stop the page).
  */
+/* ---------- right-sized images (Update 04; files by tools/make-image-sizes.py) ---------- */
+
+/** `sizes` per image slot (measured rendered widths). Keep CARD / PDP in step with tools/sync-partials.py. */
+export const SIZES = {
+  card: "(max-width: 767px) 43vw, (max-width: 1199px) 29vw, (max-width: 1439px) 22vw, 310px",
+  pdp: "(max-width: 991px) 92vw, (max-width: 1279px) 42vw, 534px",
+  heroA: "(max-width: 991px) 74vw, (max-width: 1439px) 33vw, 480px",
+  heroB: "(max-width: 991px) 43vw, (max-width: 1439px) 19vw, 272px",
+  wide: "(max-width: 991px) 100vw, 60vw",
+  tile: "(max-width: 767px) 92vw, 46vw",
+  plinth: "(max-width: 767px) 34vw, 16vw",
+};
+/** "file-600.webp 338w, file-900.webp 507w, file.webp 620w", or "" when there are no smaller copies. */
+export function srcsetOf(src) {
+  const v = IMAGE_VARIANTS[src];
+  return v?.set.length ? [...v.set.map(([f, w]) => `${f} ${w}w`), `${src} ${v.w}w`].join(", ") : "";
+}
+/** ` srcset="…" sizes="…"` for an <img>, or "" (then src alone serves). */
+export const srcsetAttr = (src, sizes) => {
+  const set = srcsetOf(src);
+  return set ? ` srcset="${set}" sizes="${sizes}"` : "";
+};
+/** The 180 px tall copy for thumbnails (rails, menus, cart, search), else the image itself. */
+export const thumbOf = (src) => IMAGE_VARIANTS[src]?.thumb || src;
+
 export function cssReady() {
   const applied = () => [...document.styleSheets].some((s) => (s.href || "").includes("css/site.min.css"));
   if (applied() || !document.querySelector('link[href*="css/site.min.css"]')) return Promise.resolve();

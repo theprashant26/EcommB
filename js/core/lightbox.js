@@ -12,7 +12,7 @@
    - Keyboard: ←/→, Esc; focus is trapped; the page is scroll-locked.
    ========================================================================== */
 
-import { esc, icon, $, $$, reducedMotion, hasGSAP } from "./format.js";
+import { esc, icon, $, $$, reducedMotion, hasGSAP, thumbOf } from "./format.js";
 import { pauseScroll } from "./motion.js";
 
 const ZOOM = 2.5;
@@ -78,7 +78,7 @@ export function openLightbox({ items: list, index: start = 0, from = null, onClo
   open = true;
   thumbs.innerHTML = items.map((it, i) => `
     <li><button type="button" class="lb-thumb" data-lb-thumb="${i}" aria-label="Show image ${i + 1}: ${esc(it.alt || "")}">
-      <img src="${esc(it.src)}" alt="" loading="lazy" decoding="async"></button></li>`).join("");
+      <img src="${esc(thumbOf(it.src))}" alt="" loading="lazy" decoding="async"></button></li>`).join("");
   thumbs.hidden = items.length < 2;
   $$(".lb-nav", root).forEach((b) => { b.hidden = items.length < 2; });
   root.hidden = false;

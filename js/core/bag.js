@@ -14,7 +14,7 @@
 import { CONFIG } from "../data/config.js";
 import { getProduct, productURL, sizesOf, sizeOf, isCombo, comboContents, brandNameOf } from "../data/products.js";
 import { getBrand } from "../data/brands.js";
-import { esc, formatPrice, icon, $, $$, hasGSAP, reducedMotion } from "./format.js";
+import { esc, formatPrice, icon, $, $$, hasGSAP, reducedMotion, thumbOf } from "./format.js";
 import { toast } from "./toast.js";
 import { revealHeader } from "./header.js";
 import { replay } from "./wishlist.js";
@@ -129,7 +129,7 @@ function render() {
     return `
       <li class="bag-line" data-id="${esc(p.id)}" data-size="${esc(l.size)}" data-key="${esc(lineKey(p.id, l.size))}">
         <a class="bag-thumb" href="${url}" tabindex="-1" aria-hidden="true">
-          <img src="${esc(p.images.card || p.images.hero)}" alt="" width="72" height="96" loading="lazy" decoding="async">
+          <img src="${esc(thumbOf(p.images.card || p.images.hero))}" alt="" width="72" height="96" loading="lazy" decoding="async">
         </a>
         <div class="bag-info">
           <p class="bag-brand">${esc(brandNameOf(p, getBrand))}${combo ? " · Combo" : ""}</p>

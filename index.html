@@ -44,13 +44,14 @@
 <link rel="modulepreload" href="js/data/categories.js">
 <link rel="modulepreload" href="js/data/config.js">
 <link rel="modulepreload" href="js/data/hero.js">
+<link rel="modulepreload" href="js/data/image-variants.js">
 <link rel="modulepreload" href="js/data/origins.js">
 <link rel="modulepreload" href="js/data/products.js">
 <link rel="modulepreload" href="js/data/rituals.js">
 <link rel="modulepreload" href="js/pages/home.js">
 <!-- MODULEPRELOAD END -->
 <!-- Hero collage: Card A is the page's largest image (LCP). Keep in step with the first slide in js/data/hero.js -->
-<link rel="preload" as="image" href="assets/products/larrive/larrive-campaign.webp" type="image/webp" fetchpriority="high">
+<link rel="preload" as="image" href="assets/products/larrive/larrive-campaign.webp" imagesrcset="assets/products/larrive/larrive-campaign-480.webp 480w, assets/products/larrive/larrive-campaign-768.webp 768w, assets/products/larrive/larrive-campaign.webp 1024w" imagesizes="(max-width: 991px) 74vw, (max-width: 1439px) 33vw, 480px" fetchpriority="high">
 <link rel="icon" href="assets/brand/favicon-32.png" sizes="32x32">
 <link rel="icon" href="assets/brand/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/brand/favicon-180.png">
@@ -191,7 +192,7 @@
               <span class="hcard-move" data-hcard-move>
                 <span class="hcard-float">
                   <span class="hcard-frame">
-                    <img class="hcard-img" src="assets/products/larrive/larrive-campaign.webp" alt="L’Arrivé, the dark glass bottle in evening blue light" width="1024" height="1536" fetchpriority="high" decoding="async" style="object-position:50% 40%">
+                    <img class="hcard-img" src="assets/products/larrive/larrive-campaign.webp" srcset="assets/products/larrive/larrive-campaign-480.webp 480w, assets/products/larrive/larrive-campaign-768.webp 768w, assets/products/larrive/larrive-campaign.webp 1024w" sizes="(max-width: 991px) 74vw, (max-width: 1439px) 33vw, 480px" alt="L’Arrivé, the dark glass bottle in evening blue light" width="1024" height="1536" fetchpriority="high" decoding="async" style="object-position:50% 40%">
                   </span>
                   <span class="hcard-chip"><span class="hcard-cap">L’Arrivé · Paris 48.86° N</span><span class="hcard-cta" aria-hidden="true">Shop L’Arrivé →</span></span>
                 </span>
@@ -201,7 +202,7 @@
               <span class="hcard-move" data-hcard-move>
                 <span class="hcard-float">
                   <span class="hcard-frame">
-                    <img class="hcard-img" src="assets/hero/hero-origin.webp" alt="One Origin Face Cleanser on stone with sea-buckthorn berries, in morning sun" width="436" height="582" fetchpriority="low" decoding="async" style="object-position:50% 50%">
+                    <img class="hcard-img" src="assets/hero/hero-origin.webp" srcset="assets/hero/hero-origin-320.webp 320w, assets/hero/hero-origin.webp 436w" sizes="(max-width: 991px) 43vw, (max-width: 1439px) 19vw, 272px" alt="One Origin Face Cleanser on stone with sea-buckthorn berries, in morning sun" width="436" height="582" fetchpriority="low" decoding="async" style="object-position:50% 50%">
                   </span>
                   <span class="hcard-chip"><span class="hcard-cap">One Origin · Leh 34.15° N</span><span class="hcard-cta" aria-hidden="true">Shop One Origin →</span></span>
                 </span>

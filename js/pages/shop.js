@@ -114,7 +114,7 @@ function brandTileHTML(b) {
 }
 
 grid.innerHTML =
-  products.map((p, i) => cardHTML(p, { headingLevel: 2, eager: i < 3 })
+  products.map((p, i) => cardHTML(p, { headingLevel: 2, eager: i === 0 ? "high" : i < 4 })
     .replace('class="cp"', `class="cp" data-flip-id="p-${esc(p.id)}"`)).join("") +
   brands.map(brandTileHTML).join("");
 

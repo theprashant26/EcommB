@@ -11,7 +11,7 @@ import { CONFIG } from "../data/config.js";
 import { visibleBrands, liveBrands, brandURL, getBrand } from "../data/brands.js";
 import { PRODUCTS, productsByBrand, productURL, CATEGORY_LABELS, RITUAL_LABELS } from "../data/products.js";
 import { ORIGINS, BATCHES, DEFAULT_BATCH, ARRIVAL_ORIGIN_ID } from "../data/origins.js";
-import { esc, formatCoords, icon, $, $$, hasGSAP, reducedMotion } from "./format.js";
+import { esc, formatCoords, icon, $, $$, hasGSAP, reducedMotion, thumbOf, srcsetAttr } from "./format.js";
 import { toast } from "./toast.js";
 import { scrollToHash } from "./motion.js";
 import { initViewTransitions } from "./transitions.js";
@@ -135,7 +135,7 @@ function productRow(p) {
   return `
     <li>
       <a class="dd-prod" href="${productURL(p.id)}">
-        <span class="dd-thumb"><img src="${esc(img)}" alt="" width="48" height="48" loading="lazy" decoding="async"></span>
+        <span class="dd-thumb"><img src="${esc(thumbOf(img))}" alt="" width="48" height="48" loading="lazy" decoding="async"></span>
         <span class="dd-prod-name">${esc(p.comingSoon ? p.fullName : p.name)}</span>
         ${p.comingSoon ? `<span class="tag-soon">Coming soon</span>` : ""}
       </a>
@@ -154,7 +154,7 @@ const BUILDERS = {
     ];
     const feature = `
       <a class="dd-feature" href="rituals.html">
-        <span class="dd-feature-img"><img src="assets/rituals/ritual-01-cleanser.webp" alt="" width="1536" height="582" loading="lazy" decoding="async"></span>
+        <span class="dd-feature-img"><img src="assets/rituals/ritual-01-cleanser.webp"${srcsetAttr("assets/rituals/ritual-01-cleanser.webp", "(max-width: 991px) 90vw, 26vw")} alt="" width="1536" height="582" loading="lazy" decoding="async"></span>
         <span class="dd-feature-cap">Rituals, written down.</span>
         <span class="dd-feature-cta">Explore ${icon("arrow-right")}</span>
       </a>`;
