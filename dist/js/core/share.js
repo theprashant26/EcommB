@@ -1,0 +1,10 @@
+import{icon as r,$ as c,$$ as f}from"./format.js";import{toast as b}from"./toast.js";function $(){return`
+    <div class="share">
+      <button type="button" class="share-btn" data-share aria-haspopup="true" aria-expanded="false" aria-controls="sharePop" aria-label="Share">${r("share-2")}</button>
+      <div class="share-pop" id="sharePop" role="menu" aria-label="Share this product" hidden data-share-pop></div>
+    </div>`}function k(d,{title:i,text:p,url:o=location.href}){const s=c("[data-share]",d),t=c("[data-share-pop]",d);if(!s||!t)return;const m=`${i} \u2014 ${o}`;t.innerHTML=`
+    <button type="button" role="menuitem" class="share-item" data-share-copy>${r("link")}<span>Copy link</span></button>
+    <a role="menuitem" class="share-item" href="https://wa.me/?text=${encodeURIComponent(m)}" target="_blank" rel="noopener">${r("whatsapp","icon--solid")}<span>WhatsApp</span></a>
+    <a role="menuitem" class="share-item" href="mailto:?subject=${encodeURIComponent(i)}&amp;body=${encodeURIComponent(`${p}
+
+${o}`)}">${r("mail")}<span>Email</span></a>`;const l=()=>f("[role=menuitem]",t),u=()=>{t.hidden=!1,s.setAttribute("aria-expanded","true"),l()[0].focus()},a=(e=!0)=>{t.hidden||(t.hidden=!0,s.setAttribute("aria-expanded","false"),e&&s.focus())};s.addEventListener("click",async()=>{if(navigator.share){try{await navigator.share({title:i,text:p,url:o})}catch{}return}t.hidden?u():a()}),c("[data-share-copy]",t).addEventListener("click",async()=>{try{await navigator.clipboard.writeText(o)}catch{const e=document.createElement("textarea");e.value=o,document.body.appendChild(e),e.select();try{document.execCommand("copy")}catch{}e.remove()}b("Link copied"),a()}),t.addEventListener("click",e=>{e.target.closest("a")&&a(!1)}),t.addEventListener("keydown",e=>{const n=l(),h=n.indexOf(document.activeElement);e.key==="Escape"&&(e.preventDefault(),a()),e.key==="ArrowDown"&&(e.preventDefault(),n[(h+1)%n.length].focus()),e.key==="ArrowUp"&&(e.preventDefault(),n[(h-1+n.length)%n.length].focus()),e.key==="Tab"&&a(!1)}),document.addEventListener("pointerdown",e=>{!t.hidden&&!e.target.closest(".share")&&a(!1)})}export{k as initShare,$ as shareButtonHTML};

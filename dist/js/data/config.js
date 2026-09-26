@@ -1,0 +1,1 @@
+const e={currency:"INR",locale:"en-IN",showPrices:!0,pricePlacement:"top",showComingBrands:!1,freeShippingOver:999,delivery:{freeOver:999,fee:49,cod:!0},demoReviews:!0,announcement:"Free delivery across India on orders over \u20B9999",bagKey:"jiai-bag-v1",wishlistKey:"jiai-wishlist-v1"};export{e as CONFIG};
