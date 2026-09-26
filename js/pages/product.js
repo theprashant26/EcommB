@@ -370,6 +370,7 @@ function ritualHTML(p) {
    ========================================================================== */
 
 function renderProduct(p) {
+  const pre = $("[data-lcp-img]", root);   // the main image already in the HTML (Update 04): keep that element
   root.innerHTML = `
     <article class="pdp wrap">
       <nav class="crumbs" aria-label="Breadcrumb">
@@ -386,6 +387,12 @@ function renderProduct(p) {
       </div>
     </article>
     <div class="pdp-below" data-pdp-below></div>`;
+  const hero = $("[data-hero-img]", root);
+  if (pre && hero && pre.getAttribute("src") === hero.getAttribute("src")) {
+    [...hero.attributes].forEach((a) => pre.setAttribute(a.name, a.value));
+    pre.removeAttribute("data-lcp-img");
+    hero.replaceWith(pre);                  // same element, same decoded image: no second paint
+  }
 
   // Title, description, JSON-LD. No aggregateRating: the ratings are samples in the preview.
   document.title = `${p.name} | Jiai Life`;

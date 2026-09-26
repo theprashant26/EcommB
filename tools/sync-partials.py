@@ -102,6 +102,7 @@ def with_preloads(page, html):
 
 
 LCP = re.compile(r"<!-- PDP LCP START.*?<!-- PDP LCP END -->\n?", re.S)
+PDP_IMG = re.compile(r"<!-- PDP IMG START -->.*?<!-- PDP IMG END -->", re.S)
 
 
 def lcp_map():
@@ -129,7 +130,11 @@ def with_lcp(page, html):
     # Before any stylesheet: an inline script placed after one waits until that stylesheet has loaded.
     html = LCP.sub("", html)
     anchor = '<link rel="preconnect" href="https://fonts.googleapis.com">'
-    return html.replace(anchor, block + "\n" + anchor, 1)
+    html = html.replace(anchor, block + "\n" + anchor, 1)
+    # Right after the main <img> in the HTML: give it its src at once (js/pages/product.js adopts the element).
+    img = ('<!-- PDP IMG START --><script>(function(m){var i=document.querySelector("[data-lcp-img]"),'
+           's=i&&m[new URLSearchParams(location.search).get("id")];if(s)i.src=s})({' + pairs + '})</script><!-- PDP IMG END -->')
+    return PDP_IMG.sub(lambda _m: img, html)
 
 
 def main():

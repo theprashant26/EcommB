@@ -161,7 +161,18 @@
 
     <main id="main" class="page-main page-product">
       <!-- Rendered from js/data/products.js by js/pages/product.js (§9.1) -->
-      <div data-pdp></div>
+      <div data-pdp>
+        <!-- Update 04: the first screen's frame and main image, in the HTML, so the image (the LCP) starts at once.
+             Its src comes from the PDP IMG script below; js/pages/product.js adopts the <img> when it renders. -->
+        <article class="pdp wrap pdp--pending" aria-hidden="true">
+          <nav class="crumbs"><ol><li>&nbsp;</li></ol></nav>
+          <div class="pdp-top">
+            <div class="pdp-gallery"><div class="pdp-rail"></div><div class="pdp-main"><div class="pdp-stage"><div class="pdp-track"><div class="pdp-slide"><span class="pdp-open"><img data-lcp-img alt="" fetchpriority="high" decoding="async"></span></div></div></div></div></div>
+            <div class="pdp-buy"></div>
+          </div>
+        </article>
+        <!-- PDP IMG START --><script>(function(m){var i=document.querySelector("[data-lcp-img]"),s=i&&m[new URLSearchParams(location.search).get("id")];if(s)i.src=s})({"one-origin-face-cleanser":"assets/products/cleanser/cleanser-front.webp","one-origin-body-lotion":"assets/products/lotion/lotion-front.webp","larrive-body-spray":"assets/products/larrive/larrive-cutout-light.webp","perfume-no2":"assets/products/perfume-02/perfume-02-placeholder.webp","larrive-02":"assets/products/larrive/larrive-02-placeholder.webp","combo-one-origin-duo":"assets/combos/combo-skin-duo.webp","combo-origin-to-arrival":"assets/combos/combo-origin-arrival.webp","combo-complete-ritual":"assets/combos/combo-complete-ritual.webp"})</script><!-- PDP IMG END -->
+      </div>
     </main>
 
     <!-- PARTIAL:footer START -->
