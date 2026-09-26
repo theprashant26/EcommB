@@ -2335,7 +2335,7 @@ html.lb-open{ overflow:hidden; }
 /* Update 04: until JS draws a page's content, its container holds the screen, so the footer
    below never paints high and then moves (no layout shift). Empty only before the first render. */
 .shop-grid:empty, .combos-grid:empty, [data-brand-page]:empty, .pdp--pending{ min-height:100vh; }
-[data-pending]{ min-height:100vh; }                                                  /* cleared by the page's JS after its first render */
+[data-pending]{ min-height:100vh; align-content:start; }   /* rows keep their own height inside the held space */                                                  /* cleared by the page's JS after its first render */
 .chips:empty{ min-height:calc(28px + 14px * 1.3); }                                  /* one row of chips */
 .shop-status:empty::before{ content:"0 pieces"; visibility:hidden; }                 /* the count's width */
 

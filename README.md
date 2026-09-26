@@ -1,11 +1,12 @@
 # Jiai Life — Design B "Maison: from origin to arrival"
 
-Static multi-page site: HTML, CSS, vanilla ES modules, Bootstrap 5.3.8, GSAP 3.15.0 (ScrollSmoother, ScrollTrigger,
-SplitText, DrawSVG, Flip) from the CDN. No build step. Full brief: `PROMPT-B-MAISON.md`; `UPDATE-01-LOGO.md` and
-`UPDATE-02-CLIENT-CHANGES.md` take precedence where they differ (Update 02 wins over both).
+Static multi-page site: HTML, CSS, vanilla ES modules, Bootstrap 5.3.8 (JS from the CDN, a trimmed copy of its CSS
+built in), GSAP 3.15.0 (gsap and ScrollTrigger on every page; ScrollSmoother, SplitText, DrawSVG and Flip loaded when
+used) from the CDN. The server needs no build: the generated files are committed (see "Build" below). Full brief:
+`PROMPT-B-MAISON.md`; the `UPDATE-*.md` files take precedence in order (Update 04 is the latest).
 
 Pages: `index.html` (home), `shop.html`, `product.html?id=…`, `brand.html?b=…`, `origin.html?batch=…` (the QR landing
-page), `about.html`, `rituals.html`, `wishlist.html`.
+page), `about.html`, `rituals.html`, `wishlist.html`, `combos.html`.
 
 ## Preview locally
 
@@ -34,7 +35,8 @@ The site is served from a sub-folder (`https://<user>.github.io/<repo>/`), so:
 
 ### Bluehost
 
-Upload everything except `tools/`, `reference/` and the `PROMPT-*.md` / `UPDATE-*.md` files to `public_html`.
+Upload everything except `tools/`, `reference/` and the `PROMPT-*.md` / `UPDATE-*.md` files to `public_html`
+(`dist/`, `css/site.min.css` and `assets/fonts/` are what the pages load; `js/` and `css/main.css` are their sources).
 `reference/` (the client's screenshots) is in `.gitignore`, so it is never published to GitHub Pages. The `.htaccess`
 turns on gzip and long cache headers; the speed figures below assume it is active.
 
@@ -72,22 +74,53 @@ python tools/sync-partials.py --check  # report drift without writing
 The same script fills the logo slots and regenerates each page's `<link rel="modulepreload">` list (between the
 MODULEPRELOAD markers) from its real import graph. Run it after adding or removing a JS import.
 
+### Build (Update 04: speed)
+
+The pages load generated, committed files. After editing a source, rebuild in this order and commit the output:
+
+```
+python tools/make-image-sizes.py   # images added or changed: right-sized copies + js/data/image-variants.js
+python tools/build-js.py           # js/ changed: minified copies in dist/js/
+python tools/sync-partials.py      # partials, preloads, the generated head/boot scripts
+python tools/build-css.py          # css/main.css or a first screen changed: css/site.min.css + critical CSS
+python tools/sync-partials.py      # once more (it also removes the stylesheet preload on the PAGE BOOT pages)
+python tools/sync-partials.py --check
+```
+
+`build-js.py` and `build-css.py` need Node (`npx`, which fetches esbuild and PurgeCSS), `build-css.py` and the
+tests need Python Playwright with Chrome, `make-image-sizes.py` needs Pillow.
+
+- **CSS:** `css/site.min.css` = `css/fonts.css` (the self-hosted fonts in `assets/fonts/`, with metric-matched local
+  fallbacks) + Bootstrap trimmed by PurgeCSS (`css/vendor/`) + `css/main.css`, minified. Each page inlines the CSS
+  its first screen uses (`<style id="critical-css">`, between the STYLES markers) and loads `site.min.css` without
+  blocking. Page modules `await cssReady()` before they render or measure anything.
+- **JS:** `js/` is the source; the pages load `dist/js/` (one minified file per module, same imports).
+- **PAGE BOOT:** on Home, product pages, Combos and About (their largest image or text is in the HTML), the full
+  stylesheet, the scripts and the page module are added by a small generated script once the browser reports the
+  marked image (`data-lcp`, or the product page's `data-lcp-img`) as painted, 2.5 s at the latest. Shop, brand,
+  Rituals, origin and wishlist (JS draws their first screen) load everything at once.
+- **Images:** `srcset`/`sizes` from `js/data/image-variants.js` (`srcsetAttr()`, `thumbOf()` and `SIZES` in
+  `js/core/format.js`); the generated preloads (home hero, shop's first card, the product page's main image) use the
+  same strings, so the browser fetches one file per slot.
+- **Space for JS content:** containers JS fills hold the screen until their first render (`:empty`, `data-pending`,
+  `.pdp--pending`), so the early first paint never shifts.
+
 ### The logo (Update 01)
 
 The logo is always the client's file, never retyped. Its slots are marked `<!-- LOGO:… -->…<!-- /LOGO -->`:
 the header inlines `jiai-wordmark.svg` (its red `.dot` drops in once, at the end of the home load sequence),
 the mobile menu and search show it as an `<img>`, the footer and About show `jiai-logo.svg`.
 
-**Pending:** the logo files have not arrived in `assets/brand/`. Until then the slots show an interim "Jiai Life" in
-the display type, and the favicon and `og-maison.jpg` are still the old images. When the files arrive: put them in
-`assets/brand/` (keeping the names in `UPDATE-01-LOGO.md`) and run `python tools/sync-partials.py`. The favicon
-`<link>`s and `og:image` already point at the right file names.
+The client's files are in `assets/brand/` (Update 03). To replace one, keep its name and run
+`python tools/sync-partials.py`.
 
 ## Where the code lives
 
 | What | File |
 |---|---|
-| Tokens, base, layout, components, pages | `css/main.css` (sections numbered in that order) |
+| Tokens, base, layout, components, pages | `css/main.css` (sections numbered in that order); built into `css/site.min.css` |
+| Fonts (self-hosted, fallbacks) | `css/fonts.css`, `assets/fonts/` |
+| Build tools | `tools/build-css.py`, `tools/build-js.py`, `tools/make-image-sizes.py`, `tools/sync-partials.py` |
 | Header, Shop / Brands / Origins dropdowns, mobile menu, footer, newsletter forms, "Notify me" | `js/core/header.js` |
 | Cart (localStorage `jiai-bag-v1`, key kept from before the rename), Add to Cart feedback | `js/core/bag.js` |
 | Wishlist (localStorage `jiai-wishlist-v1`) | `js/core/wishlist.js` |
@@ -103,7 +136,7 @@ the display type, and the favicon and `og-maison.jpg` are still the old images. 
 | 360° spin frames (one shared cache) | `js/core/spin.js` |
 | 3D map (routes, pins, billboard labels, focus/zoom) | `js/core/map3d.js` |
 | The product card (one component everywhere products are listed) | `js/core/cards.js` |
-| Formatting, image sizes, small helpers | `js/core/format.js` |
+| Formatting, image sizes, srcset/thumbnails, `cssReady()`, small helpers | `js/core/format.js` (+ `js/data/image-variants.js`, generated) |
 | Pages | `js/pages/home.js`, `shop.js`, `product.js`, `brand.js`, `origin.js`, `about.js`, `rituals.js`, `wishlist.js`, `combos.js` |
 
 ## Build status
@@ -181,6 +214,26 @@ the display type, and the favicon and `og-maison.jpg` are still the old images. 
   (it scrolls to Ratings & Reviews; "No ratings yet" without ratings; nothing for coming soon), and How to Use is its
   own tab after Product Details (numbered steps with icons). On phones the tab row scrolls sideways.
 - [x] **F · QA:** below.
+
+### Update 04 (speed)
+
+Nothing looks or behaves differently; only how the pages load. In the brief's order, each step measured on the live
+site:
+
+- [x] **1 · The LCP is never hidden:** the hero's Card A is on screen from the first paint (a transform-only settle
+  instead of the clip-path unveil; Card B keeps it) and the H1 rises a short way, visible throughout. The product
+  page's main image is in the HTML, its `src`/`srcset` set by an inline script from `?id=`; `product.js` adopts it.
+- [x] **2 · No render-blocking third-party CSS:** self-hosted fonts, Bootstrap trimmed and merged into
+  `css/site.min.css`, per-page critical CSS inline, the rest loaded without blocking.
+- [x] **3 · Less startup JavaScript:** SplitText, DrawSVG and Flip load only where and when used; ScrollSmoother only
+  on desktops with a fine pointer (never on touch devices). Home already builds everything below the fold on the
+  first scroll. Then PAGE BOOT: on pages with the LCP in the HTML, no script or stylesheet is fetched until it has
+  painted.
+- [x] **4 · Right-sized images:** width and height copies with `srcset`/`sizes`, 180 px thumbnails wherever images
+  show small (the combo product page went from ≈ 780 KB to ≈ 335 KB). Only the LCP image is `fetchpriority="high"`.
+- [x] **5 · Small wins:** minified JS (`dist/js/`) and CSS; the only preconnect left is jsDelivr (GSAP); no file is
+  requested twice.
+- Also: space is held for everything JS draws, so the earlier first paint never shifts the page (CLS 0).
 
 ## How it was tested
 

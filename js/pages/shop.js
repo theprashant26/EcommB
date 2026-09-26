@@ -117,6 +117,7 @@ grid.innerHTML =
   products.map((p, i) => cardHTML(p, { headingLevel: 2, eager: i === 0 ? "high" : i < 4 })
     .replace('class="cp"', `class="cp" data-flip-id="p-${esc(p.id)}"`)).join("") +
   brands.map(brandTileHTML).join("");
+grid.removeAttribute("data-pending");
 
 const cardEl = new Map($$(".cp", grid).map((el) => [el.dataset.id, el]));
 const blockEl = new Map($$("[data-brand-block]", grid).map((el) => [el.dataset.brandBlock, el]));

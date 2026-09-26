@@ -171,7 +171,7 @@ PICK = r"""({ vh }) => {
 
 # Rules that hold space for content JS has not drawn yet: they matter before the first render,
 # which the extraction (run after it) never sees, so they are always inlined.
-RESERVE = re.compile(r":empty|pdp--pending|data-pending")
+RESERVE = re.compile(r":empty|pdp--pending|data-pending|is-skel")
 
 
 def norm_selector(sel):
@@ -287,10 +287,50 @@ def extract_critical():
     return result
 
 
+# ---------- shop: the first cards in the HTML ----------
+
+SHOP_FIRST = re.compile(r"<!-- SHOP FIRST START -->.*?<!-- SHOP FIRST END -->", re.S)
+FIRST_CARDS = r"""async (dist) => {
+  // Exactly what js/pages/shop.js draws first (same modules, same arguments), for the first row on a phone.
+  const url = (p) => new URL(`${dist}js/${p}`, location.href).href;
+  const { cardHTML } = await import(url("core/cards.js"));
+  const { PRODUCTS, isCombo } = await import(url("data/products.js"));
+  const { visibleBrands } = await import(url("data/brands.js"));
+  const ids = new Set(visibleBrands().map((b) => b.id));
+  const products = PRODUCTS.filter((p) => ids.has(p.brand) || isCombo(p));
+  return products.slice(0, 2).map((p, i) => cardHTML(p, { headingLevel: 2, eager: i === 0 ? "high" : i < 4 })
+    .replace('class="cp"', `class="cp" data-flip-id="p-${p.id}"`)).join("");
+}"""
+
+
+def write_shop_first():
+    """shop.html: its first two cards in the HTML (the page's LCP image paints before any script runs)."""
+    from playwright.sync_api import sync_playwright
+    httpd, base = serve()
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(channel="chrome")
+            pg = browser.new_page()
+            pg.goto(base + "shop.html", wait_until="networkidle")
+            dist = "dist/" if (ROOT / "dist" / "js").exists() else ""
+            cards = pg.evaluate(FIRST_CARDS, dist)
+            browser.close()
+    finally:
+        httpd.shutdown()
+    cards = cards.replace('<img class="cp-img" ', '<img class="cp-img" data-lcp ', 1)   # PAGE BOOT waits for this image
+    path = ROOT / "shop.html"
+    html = path.read_text(encoding="utf-8")
+    new = SHOP_FIRST.sub(lambda _m: f"<!-- SHOP FIRST START -->{cards}<!-- SHOP FIRST END -->", html)
+    if new != html:
+        path.write_text(new, encoding="utf-8", newline="\n")
+        print("shop.html: first cards")
+
+
 def main():
     build_site_css()
     write_heads()
     if "--no-critical" not in sys.argv:
+        write_shop_first()
         write_heads(extract_critical())
 
 

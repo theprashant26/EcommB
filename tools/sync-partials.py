@@ -102,7 +102,7 @@ PAGE_SCRIPT = re.compile(r'(<script type="module"(?: async)? src=")(?:dist/)?(js
 # generated script (PAGE BOOT), after the [data-lcp] image has loaded and a frame has gone by, or after 2.5 s
 # at the latest. The first screen is complete before that from the HTML and the inline critical CSS.
 # Pages whose LCP is drawn by JS (shop, brand, rituals, origin, wishlist) load everything at once, as before.
-AFTER_LCP = {"index.html", "product.html", "combos.html", "about.html"}
+AFTER_LCP = {"index.html", "product.html", "combos.html", "about.html", "shop.html"}
 CDN_TAG = re.compile(r'<script defer src="(https://cdn\.jsdelivr\.net/[^"]+)"></script>\n?')
 BOOT = re.compile(r"<!-- PAGE BOOT START.*?<!-- PAGE BOOT END -->\n?", re.S)
 CSS_PRELOAD = re.compile(r'<link rel="preload" as="style" href="css/site\.min\.css"[^>]*>\n?')
@@ -119,11 +119,14 @@ def boot_block(page, cdn, mods):
             "if(!left){left=1;next()}"
             "cdn.forEach(function(s){add(\"script\",{src:s,async:false,onload:next,onerror:next},d.body)})}"
             "function painted(){requestAnimationFrame(function(){setTimeout(boot)})}"
-            # once the browser reports the marked image (or, without one, the first element) as the LCP
-            "var img=d.querySelector(\"[data-lcp],[data-lcp-img]\");"
-            "try{new PerformanceObserver(function(l){if(!img||l.getEntries().some(function(e){return e.element===img}))setTimeout(boot)})"
-            ".observe({type:\"largest-contentful-paint\",buffered:true})}"
-            "catch(e){if(img&&!img.complete){img.addEventListener(\"load\",painted);img.addEventListener(\"error\",painted)}else painted()}"
+            # once a frame with content has been presented (an LCP entry) and the marked image has loaded
+            # (when it is not the LCP itself, a frame after its load); without the LCP API, a frame after the image
+            "var img=d.querySelector(\"[data-lcp],[data-lcp-img]\"),seen=0;"
+            "function check(){if(seen&&(!img||img.complete))setTimeout(boot)}"
+            "if(img&&!img.complete){var l2=function(){requestAnimationFrame(function(){requestAnimationFrame(check)})};"
+            "img.addEventListener(\"load\",l2);img.addEventListener(\"error\",l2)}"
+            "try{new PerformanceObserver(function(){seen=1;check()}).observe({type:\"largest-contentful-paint\",buffered:true})}"
+            "catch(e){seen=1;if(!img||img.complete)painted();else{img.addEventListener(\"load\",painted);img.addEventListener(\"error\",painted)}}"
             "setTimeout(boot,2500)})(document)</script>\n<!-- PAGE BOOT END -->\n")
 
 
@@ -249,7 +252,11 @@ def with_lcp(page, html):
     # Right after the main <img> in the HTML: give it its image at once (js/pages/product.js adopts the element).
     img = ('<!-- PDP IMG START --><script>(function(m){var i=document.querySelector("[data-lcp-img]"),'
            'e=i&&m[new URLSearchParams(location.search).get("id")];if(!e)return;'
-           'if(e[1]){i.sizes=e[2];i.srcset=e[1]}i.src=e[0]})({' + table + '})</script><!-- PDP IMG END -->')
+           'if(e[1]){i.sizes=e[2];i.srcset=e[1]}i.src=e[0];'
+           # the loading shimmer on its frame, as js/core/reveal.js gives every image (it starts later on this page)
+           'if(!(i.complete&&i.naturalWidth)){var f=i.closest(".pdp-slide");f.classList.add("is-skel");'
+           'var d=function(){f.classList.remove("is-skel")};i.addEventListener("load",d);i.addEventListener("error",d)}'
+           '})({' + table + '})</script><!-- PDP IMG END -->')
     return PDP_IMG.sub(lambda _m: img, html)
 
 
