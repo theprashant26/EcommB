@@ -1,0 +1,7 @@
+# One line ending everywhere: the build reads these files, so it must get the same bytes on every machine.
+* text=auto eol=lf
+*.webp binary
+*.png binary
+*.jpg binary
+*.woff2 binary
+*.ico binary
