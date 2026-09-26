@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Compact size | Jiai Life</title>
-<meta name="description" content="Your Jiai Life favourites in travel-ready sizes, for the bag, the desk and the road.">
+<title>Combos | Jiai Life</title>
+<meta name="description" content="Better together: Jiai Life pieces, paired into rituals and priced as sets.">
 <meta name="theme-color" content="#FFFFFF">
 <!-- TODO(client): make og:image / og:url absolute once the domain is live -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Jiai Life">
-<meta property="og:title" content="Compact size | Jiai Life">
-<meta property="og:description" content="Your Jiai Life favourites in travel-ready sizes, for the bag, the desk and the road.">
+<meta property="og:title" content="Combos | Jiai Life">
+<meta property="og:description" content="Better together: Jiai Life pieces, paired into rituals and priced as sets.">
 <meta property="og:image" content="assets/brand/og-maison.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -42,13 +42,13 @@
 <link rel="modulepreload" href="js/data/config.js">
 <link rel="modulepreload" href="js/data/origins.js">
 <link rel="modulepreload" href="js/data/products.js">
-<link rel="modulepreload" href="js/pages/compact.js">
+<link rel="modulepreload" href="js/pages/combos.js">
 <!-- MODULEPRELOAD END -->
 <link rel="icon" href="assets/brand/favicon-32.png" sizes="32x32">
 <link rel="icon" href="assets/brand/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="assets/brand/favicon-180.png">
 </head>
-<body data-page="compact">
+<body data-page="combos">
 
 <a class="skip-link" href="#main">Skip to content</a>
 
@@ -148,39 +148,29 @@
 <div id="smooth-wrapper">
   <div id="smooth-content">
 
-    <main id="main" class="page-main page-compact">
-      <!-- Update 03 §7: compact sizes. Rendered from the `sizes` in js/data/products.js by js/pages/compact.js -->
-      <section class="compact-hero" aria-labelledby="compact-title">
-        <div class="wrap compact-hero-grid">
-          <div class="compact-hero-copy">
-            <p class="t-label">Travel-ready</p>
-            <h1 id="compact-title" class="t-h1">Compact size.</h1>
-            <p class="compact-lede">Your favourites in travel-ready sizes, for the bag, the desk and the road.</p>
-            <a class="btn-maison" href="#compact-grid"><span>Shop compact sizes</span></a>
+    <main id="main" class="page-main page-combos">
+      <!-- Update 03b: combos. The grid renders from the type:"combo" products in js/data/products.js (js/pages/combos.js) -->
+      <section class="combos-hero" aria-labelledby="combos-title">
+        <div class="wrap combos-hero-grid">
+          <div class="combos-hero-copy">
+            <p class="t-label">Sets</p>
+            <h1 id="combos-title" class="t-h1">Combos.</h1>
+            <p class="combos-lede">Better together: our pieces, paired into rituals and priced as sets.</p>
+            <a class="btn-maison" href="#combos-grid"><span>Shop the combos</span></a>
           </div>
-          <div class="compact-hero-stage">
-            <img src="assets/categories/category-compact.webp" alt="The Jiai Life pieces in their compact, travel-ready sizes" width="1200" height="760" fetchpriority="high" decoding="async">
+          <div class="combos-hero-stage">
+            <img src="assets/categories/category-combos.webp" alt="The Face Cleanser, Body Lotion and L’Arrivé together on a warm plinth" width="1200" height="760" fetchpriority="high" decoding="async">
           </div>
         </div>
       </section>
 
-      <section class="section compact-list" id="compact-grid" aria-labelledby="compact-list-title">
+      <section class="section combos-list" id="combos-grid" aria-labelledby="combos-list-title">
         <div class="wrap">
           <div class="sec-head">
-            <h2 id="compact-list-title" data-split>The compact pieces.</h2>
-            <p class="coords" data-compact-count></p>
+            <h2 id="combos-list-title" data-split>The combos.</h2>
+            <p class="coords" data-combos-count></p>
           </div>
-          <div class="card-grid compact-grid" data-compact-grid></div>
-        </div>
-      </section>
-
-      <section class="section compare" aria-labelledby="compare-title">
-        <div class="wrap">
-          <div class="sec-head">
-            <h2 id="compare-title" data-split>See the difference.</h2>
-            <p>The same formula and the same fragrance, in a size that travels.</p>
-          </div>
-          <div class="compare-row" data-compare></div>
+          <div class="card-grid combos-grid" data-combos-grid></div>
         </div>
       </section>
 
@@ -315,6 +305,6 @@
 <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/SplitText.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/DrawSVGPlugin.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/Flip.min.js"></script>
-<script type="module" src="js/pages/compact.js"></script>
+<script type="module" src="js/pages/combos.js"></script>
 </body>
 </html>

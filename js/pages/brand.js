@@ -18,7 +18,7 @@ import { initMotion, splitLines, appear, whenScriptsReady, afterPaint } from "..
 import { createMap3d } from "../core/map3d.js";
 import { cardHTML } from "../core/cards.js";
 import { plinthSetHTML } from "../core/plinth.js";
-import { productsByBrand } from "../data/products.js";
+import { productsByBrand, combosForBrand } from "../data/products.js";
 import { getBrand, visibleBrands, brandURL } from "../data/brands.js";
 import { ORIGINS, BATCHES, ARRIVAL_ORIGIN_ID } from "../data/origins.js";
 import { esc, formatCoords, icon, $, $$ } from "../core/format.js";
@@ -91,6 +91,7 @@ function renderLive(b) {
         </div>
       </div>
     </section>
+    ${setsHTML(b)}
 
     ${origin && ROUTE_OF[b.originId] ? `
     <section class="bmap" id="origin" aria-labelledby="bmap-title">
@@ -105,6 +106,22 @@ function renderLive(b) {
     </section>` : ""}`;
 
   setMeta(b.name, b.story);
+}
+
+/** Update 03b: the combos that hold this brand's pieces (combos belong to the house, never to a brand's grid). */
+function setsHTML(b) {
+  const sets = combosForBrand(b.id);
+  if (!sets.length) return "";
+  return `
+    <section class="section bsets" aria-labelledby="bsets-title">
+      <div class="wrap">
+        <div class="sec-head">
+          <h2 id="bsets-title" data-split>Complete the set.</h2>
+          <p>${esc(b.name)}, paired with the rest of the house and priced as a set. <a class="link-cta" href="combos.html">All combos</a></p>
+        </div>
+        <div class="card-grid bsets-grid">${sets.map((p) => cardHTML(p, { headingLevel: 3 })).join("")}</div>
+      </div>
+    </section>`;
 }
 
 /* ---------- coming / teaser brand ---------- */

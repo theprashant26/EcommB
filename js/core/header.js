@@ -148,7 +148,7 @@ const linkList = (links) =>
 const BUILDERS = {
   shop() {
     const cols = [
-      { title: "Shop", body: linkList([["Shop all", "shop.html"], ["New arrivals", "shop.html?sort=new"], ["Bestsellers", shopURL("tag", "bestseller")], ["Compact size", "compact.html"]]) },
+      { title: "Shop", body: linkList([["Shop all", "shop.html"], ["New arrivals", "shop.html?sort=new"], ["Bestsellers", shopURL("tag", "bestseller")], ["Combos", "combos.html"]]) },
       { title: "By category", body: linkList(categories().map((c) => [CATEGORY_LABELS[c] || c, shopURL("category", c)])) },
       { title: "By ritual", body: linkList(rituals().map((r) => [RITUAL_LABELS[r], shopURL("ritual", r)])) },
     ];

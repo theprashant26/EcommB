@@ -4,7 +4,7 @@
    Searches PRODUCTS and BRANDS as you type. Esc closes. "/" opens.
    ========================================================================== */
 
-import { PRODUCTS, productURL, productsByBrand } from "../data/products.js";
+import { PRODUCTS, productURL, productsByBrand, isCombo, comboItems, brandNameOf } from "../data/products.js";
 import { visibleBrands, getBrand, brandURL } from "../data/brands.js";
 import { esc, normalize, $, $$, hasGSAP, reducedMotion } from "./format.js";
 import { cardHTML } from "./cards.js";
@@ -17,12 +17,13 @@ let overlay, input, results, status, lastFocus;
 function buildIndex() {
   const brands = visibleBrands();
   const brandIds = new Set(brands.map((b) => b.id));
-  const productEntries = PRODUCTS.filter((p) => brandIds.has(p.brand)).map((p) => {
+  const productEntries = PRODUCTS.filter((p) => brandIds.has(p.brand) || isCombo(p)).map((p) => {
     const brand = getBrand(p.brand);
+    const inside = isCombo(p) ? comboItems(p).map((it) => it.product.fullName) : [];
     return {
-      kind: "product", product: p, url: productURL(p.id), title: p.name, sub: brand?.name || "",
+      kind: "product", product: p, url: productURL(p.id), title: p.name, sub: brandNameOf(p, getBrand),
       img: p.images.hero,
-      hay: normalize([p.name, p.fullName, brand?.name, brand?.category, p.benefit, p.keyIngredient,
+      hay: normalize([p.name, p.fullName, brandNameOf(p, getBrand), brand?.category, isCombo(p) ? "combo combos set" : "", ...inside, p.benefit, p.keyIngredient,
         p.forWho, ...(p.claims || []), ...Object.values(p.notes || {}).flat()].filter(Boolean).join(" ")),
     };
   });

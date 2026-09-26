@@ -19,7 +19,7 @@ import { initSearch } from "../core/search.js";
 import { initMotion, splitLines, whenScriptsReady, afterPaint } from "../core/motion.js";
 import { createSpin, frameURL } from "../core/spin.js";
 import { createMap3d } from "../core/map3d.js";
-import { cardHTML } from "../core/cards.js";
+import { cardHTML, comboPriceHTML } from "../core/cards.js";
 import { openLightbox } from "../core/lightbox.js";
 import { reviewsSectionHTML, initReviews, ratingFor } from "../core/reviews.js";
 import { deliveryHTML, initDelivery } from "../core/delivery.js";
@@ -27,7 +27,7 @@ import { shareButtonHTML, initShare } from "../core/share.js";
 import { initTabs } from "../core/tabs.js";
 import { nameForTransition } from "../core/transitions.js";
 import { CONFIG } from "../data/config.js";
-import { PRODUCTS, getProduct, sizesOf, sizeOf } from "../data/products.js";
+import { PRODUCTS, COMBOS, getProduct, productURL, sizesOf, isCombo, comboItems, comboWorth, combosWith, brandNameOf } from "../data/products.js";
 import { getBrand, brandURL } from "../data/brands.js";
 import { ORIGINS, BATCHES, ARRIVAL_ORIGIN_ID } from "../data/origins.js";
 import { esc, formatPrice, formatCoords, imageSize, icon, priceHTML, reducedMotion, $, $$ } from "../core/format.js";
@@ -42,15 +42,25 @@ const root = $("[data-pdp]");
 const id = new URLSearchParams(location.search).get("id");
 const product = id && getProduct(id);
 const brand = product && getBrand(product.brand);
-/** The size on show (Update 03 §8): ?size=compact, else the product's default (first) size. */
-let size = product ? sizeOf(product, new URLSearchParams(location.search).get("size")).key : "full";
-const sizeNow = () => sizeOf(product, size);
-const measure = (label = "") => label.split(" · ")[0];
+/** Each product is sold in one size (cart lines keep a size key all the same). */
+const size = "full";
+const sizeNow = () => sizesOf(product)[0];
+const combo = isCombo(product);
+/** A combo's pieces (products), in order. */
+const piecesOf = (p) => comboItems(p).map((it) => it.product);
+const unique = (list) => [...new Set(list.filter(Boolean))];
 
 const buyable = (p) => !p.comingSoon && CONFIG.showPrices;
 const batchFor = (p) => Object.entries(BATCHES).find(([, b]) => b.productId === p.id)?.[0];
 /** Routes on the mini map: the product's origin → New Delhi. */
 const ROUTE_OF = { "leh-ladakh": { routes: ["leh"], pins: ["leh", "delhi"] }, paris: { routes: ["paris"], pins: ["paris", "delhi"] } };
+/** The origins behind a product: its own, or (a combo) every piece's that has one. */
+const originsOf = (p) => unique(combo ? piecesOf(p).map((x) => x.originId) : [p.originId]).filter((o) => ORIGINS[o]);
+/** Mini-map routes for those origins, merged. */
+const routeFor = (p) => {
+  const r = originsOf(p).map((o) => ROUTE_OF[o]).filter(Boolean);
+  return { routes: unique(r.flatMap((x) => x.routes)), pins: unique(r.flatMap((x) => x.pins)) };
+};
 /** Values still waiting for the client read "To be confirmed" on the page (the TODO stays in the data). */
 const clean = (v = "") => {
   if (!/TODO\(client\)/.test(v)) return v;
@@ -62,13 +72,12 @@ const clean = (v = "") => {
    Gallery
    ========================================================================== */
 
+const photosOf = (p) => (p.gallery?.length ? p.gallery.filter((g) => g.src) : [{ src: p.images.hero, alt: p.fullName }]);
 const galleryOf = (p) => {
-  const base = p.gallery?.length ? p.gallery : [{ src: p.images.hero, alt: p.fullName }];
-  const s = sizeOf(p, size);
-  if (!s.compare) return base;
-  // A smaller size opens on the comparison: the full size and this one, side by side.
-  return [{ src: s.compare, alt: `${p.fullName}: ${measure(sizesOf(p)[0].label)} and ${measure(s.label)} side by side`,
-            caption: `${measure(sizesOf(p)[0].label)} and ${measure(s.label)}` }, ...base];
+  if (!isCombo(p)) return p.gallery?.length ? p.gallery : [{ src: p.images.hero, alt: p.fullName }];
+  // A combo (Update 03b): the set first, then each piece's first image, then the pieces' other images.
+  const pieces = piecesOf(p).map(photosOf);
+  return [{ src: p.images.hero, alt: `${p.fullName}, together` }, ...pieces.map((g) => g[0]), ...pieces.flatMap((g) => g.slice(1))];
 };
 /** The images (not the 360° tile) — what the lightbox shows. */
 const photos = (p) => galleryOf(p).filter((g) => g.src);
@@ -130,16 +139,16 @@ function buyHTML(p) {
   const sz = sizeNow();
   const price = p.comingSoon
     ? `<p class="pdp-price"><span class="price">Arrives soon</span></p>`
-    : `<p class="pdp-price" data-pdp-price>${priceHTML({ price: sz.price, mrp: sz.mrp })}</p>${CONFIG.showPrices ? `<p class="pdp-tax">Inclusive of all taxes</p>` : ""}`;
-  const sizes = sizesOf(p).filter((x) => x.label);
+    : `<p class="pdp-price" data-pdp-price>${isCombo(p) ? comboPriceHTML(p, { long: true }) : priceHTML({ price: sz.price, mrp: sz.mrp })}</p>${CONFIG.showPrices ? `<p class="pdp-tax">Inclusive of all taxes</p>` : ""}`;
+  const sizes = isCombo(p) ? [] : sizesOf(p).filter((x) => x.label);
   const d = CONFIG.delivery;
   const choices = buyable(p) ? `
     <div class="pdp-choices">
       ${sizes.length ? `
       <div class="pdp-choice">
         <p class="t-label" id="sizeLabel">Size</p>
-        <div class="pdp-sizes" role="radiogroup" aria-labelledby="sizeLabel" data-sizes>
-          ${sizes.map((x) => `<button type="button" role="radio" class="size-chip" data-size-key="${esc(x.key)}" aria-checked="${x.key === sz.key}" tabindex="${x.key === sz.key ? 0 : -1}">${esc(x.label)}</button>`).join("")}
+        <div class="pdp-sizes" role="radiogroup" aria-labelledby="sizeLabel">
+          ${sizes.map((x) => `<button type="button" role="radio" class="size-chip" aria-checked="${x.key === sz.key}">${esc(x.label)}</button>`).join("")}
         </div>
       </div>` : ""}
       <div class="pdp-choice">
@@ -157,7 +166,8 @@ function buyHTML(p) {
   return `
     <div class="pdp-buy" data-buy>
       <div class="pdp-brandrow">
-        ${brand ? `<a class="t-label pdp-brand" href="${brandURL(brand.id)}">${esc(brand.name)}</a>` : "<span></span>"}
+        ${isCombo(p) ? `<a class="t-label pdp-brand" href="combos.html">${esc(brandNameOf(p, getBrand))} · Combo</a>`
+          : brand ? `<a class="t-label pdp-brand" href="${brandURL(brand.id)}">${esc(brand.name)}</a>` : "<span></span>"}
         <div class="pdp-brandrow-end">
           ${p.comingSoon ? "" : `<span data-rating-slot>${ratingBadgeHTML(p)}</span>`}
           ${shareButtonHTML()}
@@ -184,11 +194,59 @@ function buyHTML(p) {
    Sections below the top area
    ========================================================================== */
 
+/** Update 03b: right under the buy box on a combo — each piece, what it's worth, and what you pay. */
+function comboHTML(p) {
+  return `
+    <section class="section pdp-combo" aria-labelledby="combo-title">
+      <div class="wrap">
+        <h2 id="combo-title" class="t-h3">What’s in the combo</h2>
+        <ul class="combo-items">
+          ${comboItems(p).map(({ product: x, qty }) => {
+            const img = x.images.card || x.images.hero;
+            const [w, h] = imageSize(img);
+            return `
+          <li class="combo-item">
+            <a class="combo-link" href="${productURL(x.id)}">
+              <span class="combo-thumb"><img src="${esc(img)}" alt="" width="${w}" height="${h}" loading="lazy" decoding="async"></span>
+              <span class="combo-info">
+                <span class="t-label combo-brand">${esc(brandNameOf(x, getBrand))}</span>
+                <span class="combo-name">${qty > 1 ? `${qty} × ` : ""}${esc(x.name)}</span>
+                ${x.size && x.size !== "TBC" ? `<span class="coords combo-size">${esc(x.size)}</span>` : ""}
+                ${CONFIG.showPrices ? `<span class="combo-worth">Worth ${formatPrice(x.price * qty)}</span>` : ""}
+              </span>
+            </a>
+          </li>`;
+          }).join("")}
+        </ul>
+        ${CONFIG.showPrices ? `<p class="combo-total">Worth <span class="combo-total-worth">${formatPrice(comboWorth(p))}</span> · You pay <strong>${formatPrice(p.price)}</strong></p>` : ""}
+      </div>
+    </section>`;
+}
+
+/** How to Use steps: 01, 02, 03 with an icon each. */
+const stepsHTML = (steps) => `<ol class="howto">${steps.map((step, i) => `
+  <li class="howto-step"><span class="howto-n">${String(i + 1).padStart(2, "0")}</span><span class="howto-ico">${icon(STEP_ICONS[Math.min(i, STEP_ICONS.length - 1)])}</span><p>${esc(step)}</p></li>`).join("")}</ol>`;
+
 /** A small icon per How to Use step: apply, work in, done. */
 const STEP_ICONS = ["droplet", "sparkles", "check"];
 
+/** A combo's spec table: Contents, Pieces, Sizes, Brands, Country of origin (from its pieces). */
+function comboDetails(p) {
+  const pieces = piecesOf(p);
+  const detail = (x, key) => clean((x.details || []).find(([k]) => k === key)?.[1] || "");
+  const made = unique(pieces.map((x) => detail(x, "Country of origin")).filter((v) => v !== "To be confirmed"));
+  return [
+    ["Contents", comboItems(p).map(({ product: x, qty }) => `${qty > 1 ? `${qty} × ` : ""}${x.fullName}`).join(" + ")],
+    ["Pieces", String(comboItems(p).reduce((n, it) => n + it.qty, 0))],
+    ["Sizes", pieces.map((x) => (x.size && x.size !== "TBC" ? x.size : "To be confirmed")).join(" + ")],
+    ["Brands", unique(pieces.map((x) => brandNameOf(x, getBrand))).join(", ")],
+    ["Country of origin", made.join(" / ") || "To be confirmed"],
+  ];
+}
+
 function tabsHTML(p) {
-  const details = (p.details || []).map(([k, v]) => `<tr><th scope="row">${esc(k)}</th><td${/TODO\(client\)/.test(v) ? ' class="is-tbc"' : ""}>${esc(clean(v))}</td></tr>`).join("");
+  const isSet = isCombo(p);
+  const details = (isSet ? comboDetails(p) : p.details || []).map(([k, v]) => `<tr><th scope="row">${esc(k)}</th><td${/TODO\(client\)/.test(v) ? ' class="is-tbc"' : ""}>${esc(clean(v))}</td></tr>`).join("");
   const notes = p.notes ? `
     <div class="notes">
       ${[["top", "Top"], ["heart", "Heart"], ["base", "Base"]].map(([k, label]) => `
@@ -204,23 +262,28 @@ function tabsHTML(p) {
       </div>`;
   })() : "";
   const ingredients = p.keyIngredients?.length ? `<p class="desc-sub t-label">Key ingredients</p><p>${p.keyIngredients.map(esc).join(" · ")}</p>` : "";
-  const features = p.features?.length
-    ? `<ul class="features">${p.features.map((f) => `
+  // A combo's features: its pieces' features combined (no repeats), at most six.
+  const featureList = isSet
+    ? piecesOf(p).flatMap((x) => x.features || []).filter((f, i, all) => all.findIndex((g) => g.title === f.title) === i).slice(0, 6)
+    : p.features || [];
+  const features = featureList.length
+    ? `<ul class="features">${featureList.map((f) => `
         <li class="feature"><span class="feature-ico">${icon(f.icon)}</span><h4>${esc(f.title)}</h4><p>${esc(f.text)}</p></li>`).join("")}</ul>`
     : `<p class="tab-empty">Its features are revealed with its name.</p>`;
   const tabs = [
     ["details", "Product Details", details ? `<table class="spec"><tbody>${details}</tbody></table>` : `<p class="tab-empty">Details arrive with the product.</p>`],
-    ["how", "How to Use", p.howTo?.length
-      ? `<ol class="howto">${p.howTo.map((step, i) => `
-          <li class="howto-step"><span class="howto-n">${String(i + 1).padStart(2, "0")}</span><span class="howto-ico">${icon(STEP_ICONS[Math.min(i, STEP_ICONS.length - 1)])}</span><p>${esc(step)}</p></li>`).join("")}</ol>`
-      : `<p class="tab-empty">How to use it arrives with the product.</p>`],
+    ["how", "How to Use", isSet
+      // A combo: each piece's steps, under the piece's name.
+      ? piecesOf(p).filter((x) => x.howTo?.length).map((x) => `
+          <div class="howto-group"><h3 class="howto-title">${esc(x.name)}</h3>${stepsHTML(x.howTo)}</div>`).join("")
+      : p.howTo?.length ? stepsHTML(p.howTo) : `<p class="tab-empty">How to use it arrives with the product.</p>`],
     ["desc", "Product Description", `
       <div class="desc">
         <div class="desc-text">
           <p>${esc(p.description || p.whatItDoes || p.benefit)}</p>
-          ${p.inside ? `<p>${esc(p.inside)}</p>` : ""}
+          ${isSet ? "" : `${p.inside ? `<p>${esc(p.inside)}</p>` : ""}
           ${ingredients}
-          ${notes}${dayline}
+          ${notes}${dayline}`}
         </div>
       </div>`],
     ["features", "Special Features", features],
@@ -236,7 +299,36 @@ function tabsHTML(p) {
     </section>`;
 }
 
+/** A combo: every piece's origin, listed, with the routes on one map (only pieces that have an origin). */
+function comboOriginHTML(p) {
+  const origins = originsOf(p);
+  if (!origins.length) return "";
+  const arrival = ORIGINS[ARRIVAL_ORIGIN_ID].name;
+  return `
+    <section class="section pdp-origin" aria-labelledby="origin-title">
+      <div class="wrap pdp-origin-inner">
+        <div class="pdp-origin-copy">
+          <p class="t-label">Where it’s from</p>
+          <h2 id="origin-title" class="t-h2">${origins.map((o) => esc(ORIGINS[o].name)).join(" and ")}.</h2>
+          <ul class="combo-origins">
+            ${origins.map((o) => {
+              const origin = ORIGINS[o];
+              const from = piecesOf(p).filter((x) => x.originId === o);
+              return `
+            <li>
+              <p class="combo-origin-pieces">${from.map((x) => esc(x.name)).join(", ")}</p>
+              <p class="coords">${esc(origin.name)} · ${formatCoords(origin.lat, origin.lon)}${origin.altitude ? ` · ${esc(origin.altitude)}` : ""} → ${esc(arrival)}</p>
+            </li>`;
+            }).join("")}
+          </ul>
+        </div>
+        <div class="mini-map map-stage" data-mini-map role="img" aria-label="Map of the routes from ${origins.map((o) => esc(ORIGINS[o].name)).join(" and ")} to ${esc(arrival)}"></div>
+      </div>
+    </section>`;
+}
+
 function originHTML(p) {
+  if (isCombo(p)) return comboOriginHTML(p);
   const origin = p.originId && ORIGINS[p.originId];
   if (!origin) return "";
   const batch = batchFor(p);
@@ -259,7 +351,9 @@ function originHTML(p) {
 }
 
 function ritualHTML(p) {
-  const others = PRODUCTS.filter((o) => o.id !== p.id);
+  // Update 03b: the combos holding this piece come first (on a combo: the other combos), then the other pieces.
+  const sets = isCombo(p) ? COMBOS.filter((c) => c.id !== p.id) : combosWith(p.id);
+  const others = [...sets, ...PRODUCTS.filter((o) => o.id !== p.id && !isCombo(o))].slice(0, 8);
   return `
     <section class="section ritual" aria-labelledby="ritual-title">
       <div class="wrap">
@@ -281,7 +375,8 @@ function renderProduct(p) {
       <nav class="crumbs" aria-label="Breadcrumb">
         <ol>
           <li><a class="link-draw" href="shop.html">Shop</a></li>
-          ${brand ? `<li><a class="link-draw" href="${brandURL(brand.id)}">${esc(brand.name)}</a></li>` : ""}
+          ${combo ? `<li><a class="link-draw" href="combos.html">Combos</a></li>`
+            : brand ? `<li><a class="link-draw" href="${brandURL(brand.id)}">${esc(brand.name)}</a></li>` : ""}
           <li aria-current="page">${esc(p.name)}</li>
         </ol>
       </nav>
@@ -443,46 +538,6 @@ if (product) {
   }
   initGallery();
 
-  /* ---- size (Update 03 §8): price, MRP and discount, the sticky bar, the URL, Add to Cart and the gallery follow it ---- */
-  function setSize(key) {
-    if (key === size) return;
-    const before = sizeOf(p, size);
-    size = sizeOf(p, key).key;
-    const sz = sizeNow();
-    $$("[data-size-key]", root).forEach((b) => {
-      const on = b.dataset.sizeKey === size;
-      b.setAttribute("aria-checked", String(on));
-      b.tabIndex = on ? 0 : -1;
-    });
-    const priceEl = $("[data-pdp-price]", root);
-    if (priceEl) priceEl.innerHTML = priceHTML({ price: sz.price, mrp: sz.mrp });
-    $$('[data-add-to-bag]').forEach((b) => { if (b.dataset.addToBag === p.id) b.dataset.size = size; });
-    const barPrice = $("[data-buybar-price]");
-    if (barPrice && CONFIG.showPrices) barPrice.textContent = formatPrice(sz.price);
-    const url = new URL(location.href);
-    if (size === sizesOf(p)[0].key) url.searchParams.delete("size"); else url.searchParams.set("size", size);
-    history.replaceState(null, "", url);
-    // The gallery changes only when the comparison photo comes or goes.
-    if (Boolean(before.compare) !== Boolean(sz.compare) || before.compare !== sz.compare) {
-      G.spin?.destroy?.();
-      $("[data-gallery]").outerHTML = galleryHTML(p);
-      initGallery();
-    }
-    delivery?.refresh();
-  }
-  const sizesEl = $("[data-sizes]", root);
-  sizesEl?.addEventListener("click", (e) => { const b = e.target.closest("[data-size-key]"); if (b) setSize(b.dataset.sizeKey); });
-  sizesEl?.addEventListener("keydown", (e) => {        // radiogroup: arrows move and select
-    const keys = $$("[data-size-key]", sizesEl);
-    const i = keys.findIndex((b) => b.dataset.sizeKey === size);
-    const d = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
-    if (!d || i < 0) return;
-    e.preventDefault();
-    const next = keys[(i + d + keys.length) % keys.length];
-    setSize(next.dataset.sizeKey);
-    next.focus();
-  });
-
   // Quantity stepper
   let delivery = null;
   const qty = $("#pdpQty");
@@ -502,6 +557,7 @@ if (product) {
   // buy box (the page's first screen and its LCP) are never held up by them.
   belowReady = afterPaint().then(() => {
     $("[data-pdp-below]").innerHTML = `
+      ${combo ? comboHTML(p) : ""}
       ${p.comingSoon ? "" : deliveryHTML()}
       ${tabsHTML(p)}
       ${originHTML(p)}
@@ -532,7 +588,7 @@ if (product) {
       const io = new IntersectionObserver(([e]) => {
         if (!e.isIntersecting) return;
         io.disconnect();
-        createMap3d(mini, ROUTE_OF[p.originId] || { routes: [], pins: [] }).then((map) =>
+        createMap3d(mini, routeFor(p)).then((map) =>
           map.finalState({ tilt: reducedMotion() ? 0 : 42, rotZ: reducedMotion() ? 0 : -4 }));
       }, { rootMargin: "50% 0px" });
       io.observe(mini);

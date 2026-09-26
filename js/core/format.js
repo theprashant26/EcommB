@@ -93,10 +93,11 @@ const IMAGE_SIZES = [
   [/larrive-cutout(-light)?\.webp$/, [557, 1143]],
   [/perfume-02-placeholder\.webp$/, [557, 1143]],
   [/larrive-02-placeholder\.(webp|png)$/, [537, 1123]],
-  [/(cleanser|lotion)-compact-compare\.webp$/, [720, 1070]],
-  [/larrive-compact-compare\.webp$/, [801, 1070]],
+  [/combo-skin-duo\.webp$/, [652, 1010]],
+  [/combo-origin-arrival\.webp$/, [684, 980]],
+  [/combo-complete-ritual\.webp$/, [895, 980]],
   [/hero-origin\.webp$/, [436, 582]],
-  [/category-compact\.webp$/, [1200, 760]],
+  [/category-combos\.webp$/, [1200, 760]],
   [/category-fragrance\.webp$/, [912, 570]],
   [/category-new\.webp$/, [842, 526]],
   [/category-skin\.webp$/, [931, 582]],
@@ -117,6 +118,7 @@ const IMAGE_FOCUS = [
   [/(cleanser|lotion)-(front|angle|hero)\.webp$/, { cx: 0.392, top: 0.036, base: 0.947 }],
   [/(larrive-cutout(-light)?|perfume-02-placeholder)\.webp$/, { cx: 0.5, top: 0.037, base: 0.963 }],
   [/larrive-02-placeholder\.webp$/, { cx: 0.5, top: 0.028, base: 0.972 }],
+  [/combo-[a-z-]+\.webp$/, { cx: 0.5, top: 0.024, base: 0.968 }],
 ];
 export function imageFocus(src = "") {
   const hit = IMAGE_FOCUS.find(([re]) => re.test(src));

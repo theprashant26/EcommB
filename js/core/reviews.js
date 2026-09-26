@@ -53,11 +53,13 @@ const stars = (n, cls = "") => `<span class="stars ${cls}" aria-hidden="true">${
 
 export function reviewsSectionHTML(p) {
   const canRate = !p.comingSoon;
+  // The note only where samples show (never on combos or pieces without sample ratings).
+  const samples = CONFIG.demoReviews && ((SAMPLE_REVIEWS[p.id] || []).length > 0 || !!p.rating);
   return `
     <section class="section pdp-reviews" id="reviews" aria-labelledby="reviews-title">
       <div class="wrap">
         <h2 id="reviews-title" class="t-h2">Ratings &amp; Reviews</h2>
-        ${CONFIG.demoReviews ? `<p class="sample-note">${icon("info")} Sample reviews shown for preview</p>` : ""}
+        ${samples ? `<p class="sample-note">${icon("info")} Sample reviews shown for preview</p>` : ""}
         <div class="rv-grid">
           <div class="rv-side">
             <div class="rv-summary" data-rv-summary></div>

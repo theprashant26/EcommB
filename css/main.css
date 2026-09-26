@@ -1858,9 +1858,9 @@ html.reveal-on [data-reveal]:not(.is-revealed) [data-reveal-inner]{ transform:sc
   .pdp-top{ grid-template-columns:minmax(0, 1fr); gap:var(--s6); }
   .pdp-gallery{ grid-template-columns:minmax(0, 1fr); }
   .pdp-main{ order:1; }
-  .pdp-rail{ order:2; flex-direction:row; min-width:0; }
+  .pdp-rail{ order:2; flex-direction:row; min-width:0; max-width:100%; }   /* a combo has a dozen thumbnails: the row scrolls */
   .pdp-rail-arrow{ display:none; }
-  .pdp-thumbs{ flex-direction:row; max-height:none; overflow-x:auto; scrollbar-width:none; min-width:0; max-width:100%; }
+  .pdp-thumbs{ flex-direction:row; flex:1 1 auto; max-height:none; overflow-x:auto; scrollbar-width:none; min-width:0; max-width:100%; }
   .pdp-thumb{ width:64px; height:80px; }
   .pdp-stage{ width:100%; }
   .pdp-dots{ display:flex; justify-content:center; gap:8px; margin-top:12px; }
@@ -2331,36 +2331,61 @@ html.lb-open{ overflow:hidden; }
   }
 }
 
-/* Size badge on a variant card (the compact page): "Compact · 30 ml" */
+/* Combo badge on a card: "Combo · 2 pieces" (Update 03b) */
 .cp-badge{
   position:absolute; left:12px; top:12px; z-index:2;
   padding:6px 10px; border-radius:999px;
   background:rgba(255,255,255,.9); border:1px solid var(--line);
   font:600 11px/1 var(--font-body); letter-spacing:.04em; color:var(--black);
 }
-
-/* ---------- 5.17 Compact size (Update 03 §7) ---------- */
-
-.compact-hero{ padding-block:clamp(40px, 7vh, 88px) var(--s8); }
-.compact-hero-grid{ display:grid; grid-template-columns:repeat(12, minmax(0, 1fr)); column-gap:var(--bs-gutter-x); align-items:center; }
-.compact-hero-copy{ grid-column:1 / 6; }
-.compact-hero-copy .t-label{ margin:0 0 16px; }
-.compact-hero-copy h1{ margin:0 0 16px; }
-.compact-lede{ max-width:36ch; font-size:17px; margin:0 0 32px; }
-.compact-hero-stage{ grid-column:7 / 13; aspect-ratio:1200 / 760; border-radius:16px; overflow:hidden; background:var(--ivory); }
-.compact-hero-stage img{ width:100%; height:100%; object-fit:cover; }
-.compact-grid{ --grid-cols:3; }
-.compare{ background:var(--ivory); }
-.compare .sec-head p{ max-width:44ch; margin:0 0 .5em; }
-.compare-row{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:clamp(16px, 2vw, 32px); }
-.compare-item{ margin:0; }
-.compare-stage{ display:block; aspect-ratio:4 / 5; border-radius:var(--radius); overflow:hidden; background:radial-gradient(120% 90% at 50% 35%, #FFFFFF 0%, #FBF8F4 70%); }
-.compare-stage img{ width:100%; height:100%; object-fit:contain; padding:8% 6%; }
-.compare-item figcaption{ display:flex; flex-direction:column; gap:4px; margin-top:16px; }
-.compare-name{ font:500 15px/1.35 var(--font-body); color:var(--black); }
-@media (max-width:991.98px){
-  .compact-hero-copy, .compact-hero-stage{ grid-column:1 / -1; }
-  .compact-hero-copy{ margin-bottom:var(--s7); }
-  .compact-grid, .compare-row{ --grid-cols:2; grid-template-columns:repeat(2, minmax(0, 1fr)); }
+/* "Save ₹149" beside a combo's struck worth */
+.price-save{ font-size:.8em; font-weight:600; color:var(--accent); margin-left:.5em; white-space:nowrap; }
+/* A combo's price is three parts: let them wrap on narrow screens rather than overflow */
+.cp--combo .cp-price, .pdp-price{ display:flex; flex-wrap:wrap; align-items:baseline; row-gap:6px; }
+.cp--combo .cp-price > *, .pdp-price > *{ margin-left:0; margin-right:.5em; }
+/* Narrow cards: the badge moves to the bottom-left of the stage, clear of the heart */
+@media (max-width:575.98px){
+  .cp-badge{ top:auto; bottom:8px; left:8px; padding:5px 8px; font-size:10px; }
 }
-@media (max-width:575.98px){ .compare-row{ grid-template-columns:1fr; } }
+
+/* ---------- 5.17 Combos (Update 03b) ---------- */
+
+.combos-hero{ padding-block:clamp(40px, 7vh, 88px) var(--s8); }
+.combos-hero-grid{ display:grid; grid-template-columns:repeat(12, minmax(0, 1fr)); column-gap:var(--bs-gutter-x); align-items:center; }
+.combos-hero-copy{ grid-column:1 / 6; }
+.combos-hero-copy .t-label{ margin:0 0 16px; }
+.combos-hero-copy h1{ margin:0 0 16px; }
+.combos-lede{ max-width:36ch; font-size:17px; margin:0 0 32px; }
+.combos-hero-stage{ grid-column:7 / 13; aspect-ratio:1200 / 760; border-radius:16px; overflow:hidden; background:var(--ivory); }
+.combos-hero-stage img{ width:100%; height:100%; object-fit:cover; object-position:50% 60%; }
+.combos-grid, .bsets-grid{ --grid-cols:3; }
+
+/* Product page: what's in the combo */
+.pdp-combo{ padding-top:var(--s8); padding-bottom:0; }
+.pdp-combo h2{ margin:0 0 var(--s5); }
+.combo-items{ list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:16px; }
+.combo-link{ display:grid; grid-template-columns:72px minmax(0, 1fr); gap:16px; align-items:center; height:100%; padding:14px; border:1px solid var(--line); border-radius:var(--radius); color:var(--black); text-decoration:none; transition:border-color .2s linear; }
+.combo-link:hover{ border-color:var(--black); }
+.combo-thumb{ display:grid; place-items:center; width:72px; height:88px; border-radius:8px; background:var(--ivory); overflow:hidden; }
+.combo-thumb img{ width:auto; height:80px; object-fit:contain; }
+.combo-info{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+.combo-brand{ font-size:10.5px; }
+.combo-name{ font:500 15px/1.3 var(--font-body); }
+.combo-worth{ font-size:13px; color:var(--zinc); font-variant-numeric:tabular-nums; }
+.combo-total{ margin:var(--s5) 0 0; font-size:15px; color:var(--zinc); font-variant-numeric:tabular-nums; }
+.combo-total-worth{ text-decoration:line-through; }
+.combo-total strong{ color:var(--black); font-weight:600; }
+.howto-group + .howto-group{ margin-top:var(--s7); }
+.howto-title{ font:600 11.5px/1.3 var(--font-body); letter-spacing:.18em; text-transform:uppercase; color:var(--zinc); margin:0 0 20px; }
+.combo-origins{ list-style:none; margin:0 0 24px; padding:0; display:grid; gap:14px; }
+.combo-origins p{ margin:0; }
+.combo-origin-pieces{ font:500 15px/1.4 var(--font-body); color:var(--black); }
+.bag-contents{ font-size:12.5px; line-height:1.45; }
+.bsets .sec-head p{ max-width:52ch; }
+
+@media (max-width:991.98px){
+  .combos-hero-copy, .combos-hero-stage{ grid-column:1 / -1; }
+  .combos-hero-copy{ margin-bottom:var(--s7); }
+  .combos-grid, .bsets-grid{ --grid-cols:2; }
+  .combo-items{ grid-template-columns:1fr; }
+}

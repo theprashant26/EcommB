@@ -12,7 +12,7 @@
    ========================================================================== */
 
 import { CONFIG } from "../data/config.js";
-import { getProduct, productURL, sizesOf, sizeOf } from "../data/products.js";
+import { getProduct, productURL, sizesOf, sizeOf, isCombo, comboContents, brandNameOf } from "../data/products.js";
 import { getBrand } from "../data/brands.js";
 import { esc, formatPrice, icon, $, $$, hasGSAP, reducedMotion } from "./format.js";
 import { toast } from "./toast.js";
@@ -121,27 +121,29 @@ function render() {
 
   list.innerHTML = lines.map((l) => {
     const p = getProduct(l.id);
-    const brand = getBrand(p.brand);
+    const combo = isCombo(p);
     const sz = sizeOf(p, l.size);
-    const url = `${productURL(p.id)}${l.size !== "full" ? `&size=${encodeURIComponent(l.size)}` : ""}`;
+    // A combo is one line: its image and name, and what's inside ("Face Cleanser 100 ml + Body Lotion 100 ml").
+    const sub = combo ? comboContents(p) : sz.label;
+    const url = productURL(p.id);
     return `
       <li class="bag-line" data-id="${esc(p.id)}" data-size="${esc(l.size)}" data-key="${esc(lineKey(p.id, l.size))}">
-        <a class="bag-thumb${l.size === "compact" ? " is-compact" : ""}" href="${url}" tabindex="-1" aria-hidden="true">
+        <a class="bag-thumb" href="${url}" tabindex="-1" aria-hidden="true">
           <img src="${esc(p.images.card || p.images.hero)}" alt="" width="72" height="96" loading="lazy" decoding="async">
         </a>
         <div class="bag-info">
-          <p class="bag-brand">${esc(brand?.name || "")}</p>
+          <p class="bag-brand">${esc(brandNameOf(p, getBrand))}${combo ? " · Combo" : ""}</p>
           <a class="bag-name link-draw" href="${url}">${esc(p.name)}</a>
-          <p class="bag-size">${esc(sz.label)}</p>
+          ${sub ? `<p class="bag-size${combo ? " bag-contents" : ""}">${esc(sub)}</p>` : ""}
           <div class="bag-row">
-            <div class="stepper" role="group" aria-label="Quantity for ${esc(p.fullName)}, ${esc(sz.label)}">
+            <div class="stepper" role="group" aria-label="Quantity for ${esc(p.fullName)}${sz.label && !combo ? `, ${esc(sz.label)}` : ""}">
               <button type="button" class="stepper-btn" data-step="-1" aria-label="Decrease quantity" ${l.qty <= 1 ? "disabled" : ""}>
                 ${icon("minus")}</button>
               <output class="stepper-val" aria-live="polite">${l.qty}</output>
               <button type="button" class="stepper-btn" data-step="1" aria-label="Increase quantity" ${l.qty >= MAX_QTY ? "disabled" : ""}>
                 ${icon("plus")}</button>
             </div>
-            <button type="button" class="bag-remove link-draw" data-remove>Remove<span class="visually-hidden"> ${esc(p.fullName)}, ${esc(sz.label)}</span></button>
+            <button type="button" class="bag-remove link-draw" data-remove>Remove<span class="visually-hidden"> ${esc(p.fullName)}${sz.label && !combo ? `, ${esc(sz.label)}` : ""}</span></button>
           </div>
         </div>
         <p class="bag-price">${CONFIG.showPrices ? formatPrice(sz.price * l.qty) : "Price at launch"}</p>

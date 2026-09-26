@@ -4,7 +4,8 @@
    Update 02 (§12) fields: category, subcategory, ritual, tags, mrp, cardScale,
    rating (demo values while CONFIG.demoReviews is on), details, description,
    features, gallery. images.card / images.cardHover feed the product card.
-   sizes (Update 03 §8): [{ key, label, price, mrp, compare? }], the first is the default.
+   Combos (Update 03b): type:"combo", brand:"jiai-life" (the house), items:[{ id, qty }], a set
+   price; their worth is computed from the items' prices (comboWorth), never typed in.
    gallery entries: fit:"cover" + focus for scene images (the rest are cutouts,
    shown whole on the ivory stage); hd is the lightbox file.
    ========================================================================== */
@@ -15,8 +16,6 @@ export const PRODUCTS = [
     category:"skin", subcategory:"cleanser", ritual:"morning", tags:["bestseller"],
     benefit:"Skin brightening and anti-pigmentation", forWho:"For all skin types", size:"100 ml",
     price:649, mrp:null, priceNote:"placeholder",             // TODO(client): real price and MRP
-    sizes:[ { key:"full",    label:"100 ml",          price:649, mrp:null },
-            { key:"compact", label:"30 ml · Compact", price:249, mrp:null, compare:"assets/products/cleanser/cleanser-compact-compare.webp" } ], // TODO(client): compact size + price
     cardScale:1,
     rating:{ average:4.6, count:86, breakdown:{ 5:64, 4:15, 3:4, 2:2, 1:1 } },   // demo (CONFIG.demoReviews)
     keyIngredient:"Organic sea-buckthorn",
@@ -48,8 +47,6 @@ export const PRODUCTS = [
     category:"skin", subcategory:"lotion", ritual:"evening", tags:[],
     benefit:"Skin brightening and anti-pigmentation", forWho:"For smoother body", size:"100 ml",
     price:749, mrp:null, priceNote:"placeholder",             // TODO(client): real price and MRP
-    sizes:[ { key:"full",    label:"100 ml",          price:749, mrp:null },
-            { key:"compact", label:"30 ml · Compact", price:299, mrp:null, compare:"assets/products/lotion/lotion-compact-compare.webp" } ],   // TODO(client): compact size + price
     cardScale:1,
     rating:{ average:4.5, count:64, breakdown:{ 5:44, 4:14, 3:4, 2:1, 1:1 } },   // demo (CONFIG.demoReviews)
     keyIngredient:"Organic sea-buckthorn",
@@ -80,8 +77,6 @@ export const PRODUCTS = [
     category:"fragrance", subcategory:"body-spray", ritual:"day", tags:["bestseller", "new"],
     benefit:"Premium body spray for men", size:"150 ml",     // TODO(client): confirm
     price:899, mrp:null, priceNote:"placeholder",             // TODO(client): real price and MRP
-    sizes:[ { key:"full",    label:"150 ml",         price:899, mrp:null },
-            { key:"compact", label:"20 ml · Pocket", price:299, mrp:null, compare:"assets/products/larrive/larrive-compact-compare.webp" } ], // TODO(client): compact size + price
     cardScale:0.9,
     rating:{ average:4.4, count:112, breakdown:{ 5:72, 4:26, 3:9, 2:3, 1:2 } },  // demo (CONFIG.demoReviews)
     longevityHours:10,
@@ -128,6 +123,34 @@ export const PRODUCTS = [
     features:[],
     images:{ hero:"assets/products/larrive/larrive-02-placeholder.webp", card:"assets/products/larrive/larrive-02-placeholder.webp" },
     gallery:[ { src:"assets/products/larrive/larrive-02-placeholder.webp", hd:"assets/products/larrive/larrive-02-placeholder.png", alt:"L’Arrivé new fragrance, placeholder bottle" } ] },
+  // Update 03b: combos — curated sets of the pieces above, sold as one product at a set price.
+  // TODO(client): which combos to sell, their names and prices; add Nº 2 or the second L’Arrivé once they are live.
+  { id:"combo-one-origin-duo", type:"combo", brand:"jiai-life", category:"combo", tags:["bestseller"],
+    name:"The One Origin Duo", fullName:"The One Origin Duo — Face Cleanser + Body Lotion",
+    benefit:"Face and body, from one single source",
+    description:"The One Origin face cleanser and body lotion, together: the same organic sea-buckthorn from Leh, Ladakh, for the morning wash and the evening moisture.",
+    items:[ { id:"one-origin-face-cleanser", qty:1 }, { id:"one-origin-body-lotion", qty:1 } ],
+    price:1249,                                   // TODO(client): combo price
+    rating:null, cardScale:0.95,
+    images:{ hero:"assets/combos/combo-skin-duo.webp" } },
+
+  { id:"combo-origin-to-arrival", type:"combo", brand:"jiai-life", category:"combo", tags:["new"],
+    name:"Origin to Arrival", fullName:"Origin to Arrival — Face Cleanser + L’Arrivé",
+    benefit:"Start the day clean. Arrive in style",
+    description:"From Leh to Paris: the One Origin face cleanser for the start of the day, and L’Arrivé body spray for the way out.",
+    items:[ { id:"one-origin-face-cleanser", qty:1 }, { id:"larrive-body-spray", qty:1 } ],
+    price:1399,                                   // TODO(client): combo price
+    rating:null, cardScale:0.95,
+    images:{ hero:"assets/combos/combo-origin-arrival.webp" } },
+
+  { id:"combo-complete-ritual", type:"combo", brand:"jiai-life", category:"combo", tags:[],
+    name:"The Complete Ritual", fullName:"The Complete Ritual — Face Cleanser + Body Lotion + L’Arrivé",
+    benefit:"Morning, day and evening, in one set",
+    description:"The whole day in one set: the face cleanser in the morning, L’Arrivé through the day, and the body lotion in the evening.",
+    items:[ { id:"one-origin-face-cleanser", qty:1 }, { id:"one-origin-body-lotion", qty:1 }, { id:"larrive-body-spray", qty:1 } ],
+    price:1999,                                   // TODO(client): combo price
+    rating:null, cardScale:0.95,
+    images:{ hero:"assets/combos/combo-complete-ritual.webp" } },
 ];
 
 /* ---------- lookups ---------- */
@@ -145,8 +168,31 @@ export const productURL = (id) => `product.html?id=${encodeURIComponent(id)}`;
 export const sizesOf = (p) => (p.sizes?.length ? p.sizes
   : [{ key: "full", label: p.size && p.size !== "TBC" ? p.size : "", price: p.price, mrp: p.mrp ?? null }]);
 export const sizeOf = (p, key) => sizesOf(p).find((s) => s.key === key) || sizesOf(p)[0];
-export const hasCompact = (p) => sizesOf(p).some((s) => s.key === "compact");
+
+/* ---------- combos (Update 03b) ---------- */
+
+/** The house's own label: combos belong to Jiai Life, not to one brand. */
+export const HOUSE = { id: "jiai-life", name: "Jiai Life" };
+export const isCombo = (p) => p?.type === "combo";
+export const COMBOS = PRODUCTS.filter(isCombo);
+/** [{ product, qty }] for a combo's contents. */
+export const comboItems = (p) => (p.items || []).map((it) => ({ product: getProduct(it.id), qty: it.qty || 1 })).filter((it) => it.product);
+/** What the pieces cost bought one by one (the struck "worth" price); follows the items' prices. */
+export const comboWorth = (p) => comboItems(p).reduce((sum, it) => sum + it.product.price * it.qty, 0);
+export const comboSaving = (p) => Math.max(0, comboWorth(p) - p.price);
+export const comboPieces = (p) => comboItems(p).reduce((n, it) => n + it.qty, 0);
+/** A piece's name inside a set: its short name, title-cased ("Body lotion" → "Body Lotion"). */
+const setName = (x) => (x.shortName ? x.shortName.replace(/(^|\s)\S/g, (c) => c.toUpperCase()) : x.name);
+/** "Face Cleanser 100 ml + Body Lotion 100 ml" */
+export const comboContents = (p) => comboItems(p).map(({ product: x, qty }) =>
+  `${qty > 1 ? `${qty} × ` : ""}${setName(x)}${x.size && x.size !== "TBC" ? ` ${x.size}` : ""}`).join(" + ");
+/** The combos a product is part of. */
+export const combosWith = (id) => COMBOS.filter((c) => (c.items || []).some((it) => it.id === id));
+/** The combos holding any of a brand's products (its "Complete the set" row). */
+export const combosForBrand = (brandId) => COMBOS.filter((c) => comboItems(c).some((it) => it.product.brand === brandId));
+/** The brand name a product is shown under ("Jiai Life" for combos). */
+export const brandNameOf = (p, getBrand) => (isCombo(p) ? HOUSE.name : getBrand(p.brand)?.name || "");
 
 /** Category labels for menus and filters. */
-export const CATEGORY_LABELS = { skin: "Skin care", fragrance: "Fragrance" };
+export const CATEGORY_LABELS = { skin: "Skin care", fragrance: "Fragrance", combo: "Combos" };
 export const RITUAL_LABELS = { morning: "Morning", day: "Day", evening: "Evening", night: "Night" };

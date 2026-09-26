@@ -46,7 +46,7 @@ Everything that lists brands or products renders from `js/data/`:
 |---|---|
 | `js/data/config.js` | Currency, `showPrices`, `pricePlacement` ("top" / "after-story"), `showComingBrands`, free-delivery threshold, `delivery` (fee, COD), `demoReviews` (**set to `false` at launch**), announcement line |
 | `js/data/brands.js` | Brands: name, tagline, category, coordinates, story, status (`live` / `coming` / `teaser`), room colours |
-| `js/data/products.js` | Products: copy, claims, how-to, notes, `sizes` (full and compact, each with its price / `mrp` and comparison photo), `category`, `ritual`, `tags`, `cardScale`, `rating`, `details`, `features`, `gallery`, images, spin frames |
+| `js/data/products.js` | Products: copy, claims, how-to, notes, prices / `mrp`, combos (`type:"combo"`, `items`, a set price; the struck worth is computed from the items), `category`, `ritual`, `tags`, `cardScale`, `rating`, `details`, `features`, `gallery`, images, spin frames |
 | `js/data/hero.js` | The two home hero cards: image, alt text, caption chip, link, focal point |
 | `js/data/categories.js` | "Categories You Might Like" tiles (home): title, line, image, link |
 | `js/data/rituals.js` | "Rituals, written down" rows (home and `rituals.html`): image, number, title, copy, three features, link. More rows continue the alternating pattern |
@@ -104,7 +104,7 @@ the display type, and the favicon and `og-maison.jpg` are still the old images. 
 | 3D map (routes, pins, billboard labels, focus/zoom) | `js/core/map3d.js` |
 | The product card (one component everywhere products are listed) | `js/core/cards.js` |
 | Formatting, image sizes, small helpers | `js/core/format.js` |
-| Pages | `js/pages/home.js`, `shop.js`, `product.js`, `brand.js`, `origin.js`, `about.js`, `rituals.js`, `wishlist.js`, `compact.js` |
+| Pages | `js/pages/home.js`, `shop.js`, `product.js`, `brand.js`, `origin.js`, `about.js`, `rituals.js`, `wishlist.js`, `combos.js` |
 
 ## Build status
 
@@ -155,7 +155,7 @@ the display type, and the favicon and `og-maison.jpg` are still the old images. 
 
 - [x] **0 · Logo:** the client's files in `assets/brand/` replace the interim text everywhere (header inline, so the red
   dot can animate; mobile menu, search, footer and About as images), with the new favicons and `og-maison.jpg`.
-- [x] **A · Data:** `hero.js`, `categories.js`, product `sizes`, the second L’Arrivé product (`larrive-02`, coming
+- [x] **A · Data:** `hero.js`, `categories.js`, the second L’Arrivé product (`larrive-02`, coming
   soon). Sample reviews never carry "Verified buyer" (only real verified purchases may). Dropdowns kill running
   animations and hide every other panel when one opens.
 - [x] **B · Home top:** the layered hero is replaced by two overlapping rounded image cards with caption chips, a calm
@@ -166,11 +166,17 @@ the display type, and the favicon and `og-maison.jpg` are still the old images. 
   sits above the map with no boxes over the dots. The House keeps its original heading and "1 of 3" counter, and its
   rooms are smaller cards in a looping carousel (auto-advance, arrows, dots, swipe, keys). Everything that moves by
   itself pauses on hover, focus, off-screen and hidden tabs; with reduced motion nothing plays and the controls remain.
-- [x] **D · Compact size:** "Compact size" in the Shop dropdown, mobile menu and shop filters (`?size=compact`);
-  `compact.html` lists the compact variants (smaller cards, compact prices, Add to Cart adds the compact size) and
-  "See the difference" side by side. Product pages have a size selector (price, sticky bar, URL `&size=`, Add to Cart
-  and a comparison photo first follow it); the cart keeps one line per size (older carts read as the full size).
-  `larrive-02` appears in the menus, the L’Arrivé room, the brand page, the shop and search.
+- [x] **D · Combos** (Update 03b; the client meant combos, not compact sizes, so the compact-size work was removed —
+  page, menu link, filter, sizes and images): curated sets sold as one product at a set price (`type:"combo"`, owned by
+  the house, `brand:"jiai-life"`). "Combos" in the Shop dropdown, mobile menu, shop filters (`?category=combo`, also in
+  "Shop all"), search and the Categories tile; `combos.html` lists them. The card adds a "Combo · 2 pieces" badge, the
+  struck worth (the pieces' prices added up, computed) and "Save ₹…". A combo's product page: the set image, then
+  each piece's images; "Save ₹149 (11% off)"; "What's in the combo" (each piece, what it's worth, "Worth · You pay");
+  a combo spec table, How to Use grouped by piece, the pieces' features (6 at most), every piece's origin on one map,
+  and an empty Ratings & Reviews. In the cart a combo is one line listing its contents. Combos are never listed under a
+  brand (Brands / Origins dropdowns, brand grids); brand pages show them in "Complete the set", and product pages put
+  the combos holding the piece first in "Complete the ritual". `larrive-02` appears in the menus, the L’Arrivé room, the
+  brand page, the shop and search.
 - [x] **E · Product page:** the rating is a "4.5 ★ | 64 ratings" pill beside the share button on every product page
   (it scrolls to Ratings & Reviews; "No ratings yet" without ratings; nothing for coming soon), and How to Use is its
   own tab after Product Details (numbered steps with icons). On phones the tab row scrolls sideways.
@@ -192,8 +198,8 @@ Automated in Chrome and WebKit (Playwright), on a local server with gzip as on B
   D 44 · E 17) plus 13 in WebKit — menus by hover, click, keyboard and touch; cart and wishlist; the card; the House;
   the rest stops and callouts; the lightbox; the Rituals rows; brand pages; every Shop-menu URL; the product page
   from gallery to reviews; view transitions; empty and loading states.
-- Update 03: 100 more (logo and data 13 · hero and categories 22 · auto movement 27 · compact size 20 · product page
-  18), with all earlier suites re-run; `compact.html` and `product.html?…&size=compact` added to the width, keyboard,
+- Update 03: 100 more (logo and data 13 · hero and categories 22 · auto movement 27 · combos 39 · product page
+  18), with all earlier suites re-run; `combos.html` and a combo product page added to the width, keyboard,
   reduced-motion and WebKit sweeps (84 page-size combinations).
 
 ## Speed
@@ -207,13 +213,15 @@ available here: run it (or PageSpeed Insights) on the live URL before launch.
 | Home | ≈ 2.8 s | ≈ 10–20 ms | 0 |
 | Shop | ≈ 2.6 s | ≈ 0–90 ms | 0 |
 | Product (cleanser / L’Arrivé / body lotion) | ≈ 2.2 s / 2.2 s / 2.3 s | ≈ 75–95 ms | 0 |
-| Compact size | ≈ 2.15 s | ≈ 70–85 ms | 0 |
+| Combo product (The Complete Ritual) | ≈ 2.5 s | ≈ 130–145 ms | 0 |
+| Combos | ≈ 2.1 s | ≈ 55 ms | 0 |
 | Brand | ≈ 2.3 s | ≈ 210 ms | ≈ 0.003 |
 | Origin (QR landing) | ≈ 2.2–2.4 s | ≈ 110–170 ms | ≈ 0.02 |
 | About | ≈ 1.9 s | ≈ 80 ms | 0 |
 
-Home, shop, product and compact re-measured after Update 03; the other rows are from earlier builds. Home's LCP is
-the first hero card, `larrive-campaign.webp` (100 KB, kept as supplied); a lighter export of it is the main lever left.
+Home, shop, product and combos re-measured after Update 03b; the other rows are from earlier builds. Home's LCP is
+the first hero card, `larrive-campaign.webp` (100 KB, kept as supplied); a lighter export of it is the main lever left. A combo's product page transfers ≈ 1 MB, as its thumbnail rail shows every piece's images;
+small thumbnail exports would cut that.
 
 What keeps it fast (keep these in place):
 
@@ -234,7 +242,7 @@ What keeps it fast (keep these in place):
 |---|---|
 | Lifestyle photos for the two hero cards (the product photos stand in), and a larger `hero-origin` export | `js/data/hero.js`, `assets/hero/` |
 | A lighter export of `larrive-campaign.webp` (the home hero's largest image, and its LCP) | `assets/` (same file name) |
-| Compact sizes and prices (30 ml ₹249 / ₹299, L’Arrivé 20 ml ₹299 are placeholders) | `js/data/products.js` (`sizes`) |
+| Combos: which sets to sell, their names and prices (₹1,249 / ₹1,399 / ₹1,999 are placeholders); add Nº 2 or the second L’Arrivé once they are live | `js/data/products.js` (the `type:"combo"` entries) |
 | The second L’Arrivé product: name, fragrance, size, price, photos | `js/data/products.js` (`larrive-02`) |
 | The House: the client asked to "reverse to previous design"; the heading and counter are restored — confirm nothing else is meant | `index.html`, `js/pages/home.js` (`initHouse`) |
 | Prices (649 / 749 / 899 / 999 are placeholders; also used in the Product JSON-LD) | `js/data/products.js` |

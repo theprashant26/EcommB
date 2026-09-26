@@ -2,7 +2,7 @@
    Shop (shop.html) — §9.2, Update 02 §8
    - Filters read from and written to the URL, so every menu link lands on a
      real result: ?brand=, ?category=skin|fragrance, ?ritual=morning|day|
-     evening|night, ?size=compact, ?tag=bestseller|new, ?sort=featured|new|price-asc|price-desc.
+     evening|night, ?category=combo, ?tag=bestseller|new, ?sort=featured|new|price-asc|price-desc.
      One choice per group; groups combine. "All" clears the filters.
    - Chips re-lay the grid out with GSAP Flip; a sort select orders it.
    - Product cards (js/core/cards.js) and, in the featured order, a brand tile
@@ -17,7 +17,7 @@ import { initSearch } from "../core/search.js";
 import { initMotion, splitLines, whenScriptsReady, afterPaint } from "../core/motion.js";
 import { cardHTML } from "../core/cards.js";
 import { plinthSetHTML } from "../core/plinth.js";
-import { PRODUCTS, CATEGORY_LABELS, RITUAL_LABELS, hasCompact } from "../data/products.js";
+import { PRODUCTS, CATEGORY_LABELS, RITUAL_LABELS, isCombo } from "../data/products.js";
 import { visibleBrands, brandURL } from "../data/brands.js";
 import { ORIGINS } from "../data/origins.js";
 import { esc, formatCoords, reducedMotion, hasGSAP, $, $$ } from "../core/format.js";
@@ -38,7 +38,8 @@ const empty = $("[data-shop-empty]");
 
 const brands = visibleBrands();
 const brandIds = new Set(brands.map((b) => b.id));
-const products = PRODUCTS.filter((p) => brandIds.has(p.brand));
+// Combos (the house's own sets) are part of "Shop all" and have their own Category chip.
+const products = PRODUCTS.filter((p) => brandIds.has(p.brand) || isCombo(p));
 const present = (key) => new Set(products.map((p) => p[key]));
 
 const GROUPS = [
@@ -51,9 +52,6 @@ const GROUPS = [
   { key: "ritual", label: "Ritual",
     options: Object.keys(RITUAL_LABELS).filter((r) => present("ritual").has(r)).map((r) => ({ value: r, label: RITUAL_LABELS[r] })),
     test: (p, v) => p.ritual === v },
-  { key: "size", label: "Size",
-    options: products.some(hasCompact) ? [{ value: "compact", label: "Compact size" }] : [],
-    test: (p, v) => v === "compact" && hasCompact(p) },
   { key: "tag", label: "Collection",
     options: [{ value: "bestseller", label: "Bestsellers" }, { value: "new", label: "New" }]
       .filter((t) => products.some((p) => (p.tags || []).includes(t.value))),
@@ -130,7 +128,7 @@ function layoutFor(s) {
   if (s.sort !== "featured" || !shown.length) return { order: shown.map((p) => cardEl.get(p.id)), count: shown.length };
   // Featured: a brand tile after every full row of pieces, cycling through the brands shown.
   const perRow = columns();
-  const shownBrands = [...new Set(shown.map((p) => p.brand))];
+  const shownBrands = [...new Set(shown.map((p) => p.brand))].filter((id) => blockEl.has(id));
   const order = [];
   let next = 0;
   shown.forEach((p, i) => {
