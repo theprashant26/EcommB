@@ -1,11 +1,13 @@
 /* ==========================================================================
-   Search (§7) — full-screen white overlay with a huge Bodoni input.
+   Search (§7) — full-screen white overlay with a large Cormorant input.
+   Products show as the shared product card (Update 02 §5); brands as rows.
    Searches PRODUCTS and BRANDS as you type. Esc closes. "/" opens.
    ========================================================================== */
 
 import { PRODUCTS, productURL, productsByBrand } from "../data/products.js";
 import { visibleBrands, getBrand, brandURL } from "../data/brands.js";
 import { esc, normalize, $, $$, hasGSAP, reducedMotion } from "./format.js";
+import { cardHTML } from "./cards.js";
 import { pauseScroll } from "./motion.js";
 
 let overlay, input, results, status, lastFocus;
@@ -18,7 +20,7 @@ function buildIndex() {
   const productEntries = PRODUCTS.filter((p) => brandIds.has(p.brand)).map((p) => {
     const brand = getBrand(p.brand);
     return {
-      kind: "product", url: productURL(p.id), title: p.name, sub: brand?.name || "",
+      kind: "product", product: p, url: productURL(p.id), title: p.name, sub: brand?.name || "",
       img: p.images.hero,
       hay: normalize([p.name, p.fullName, brand?.name, brand?.category, p.benefit, p.keyIngredient,
         p.forWho, ...(p.claims || []), ...Object.values(p.notes || {}).flat()].filter(Boolean).join(" ")),
@@ -51,9 +53,25 @@ function render() {
   const q = input.value.trim();
   const found = query(q);
   status.textContent = q
-    ? (found.length ? `${found.length} ${found.length === 1 ? "result" : "results"}` : `Nothing in the house matches “${q}”.`)
+    ? (found.length ? `${found.length} ${found.length === 1 ? "result" : "results"}` : "No results")
     : "Everything in the house";
-  results.innerHTML = found.map((e) => `
+  if (q && !found.length) {
+    // Empty state: say so plainly, and offer the ways in.
+    const ideas = ["Cleanser", "Body lotion", "Fragrance", "Sea-buckthorn"];
+    results.innerHTML = `
+      <li class="search-empty">
+        <p class="empty-title">Nothing in the house matches “${esc(q)}”.</p>
+        <p class="empty-sub">Try one of these, or see every piece.</p>
+        <div class="search-ideas">${ideas.map((w) => `<button type="button" class="chip-pill" data-search-idea="${esc(w)}">${esc(w)}</button>`).join("")}
+          <a class="link-cta" href="shop.html">Shop all</a></div>
+      </li>`;
+    return;
+  }
+  const products = found.filter((e) => e.kind === "product");
+  const brands = found.filter((e) => e.kind === "brand");
+  results.innerHTML = (products.length
+    ? `<li class="search-cards"><div class="card-grid search-grid">${products.map((e) => cardHTML(e.product, { headingLevel: 3 })).join("")}</div></li>`
+    : "") + brands.map((e) => `
     <li class="search-result">
       <a href="${e.url}">
         <span class="search-thumb">${e.img
@@ -63,7 +81,7 @@ function render() {
           <span class="search-title">${esc(e.title)}</span>
           <span class="search-sub">${esc(e.sub)}</span>
         </span>
-        <span class="search-kind">${e.kind === "brand" ? "Brand" : "Piece"}</span>
+        <span class="search-kind">Brand</span>
       </a>
     </li>`).join("");
 }
@@ -105,6 +123,13 @@ export function initSearch() {
   $$("[data-search-open]").forEach((btn) => btn.addEventListener("click", openSearch));
   $$("[data-search-close]", overlay).forEach((btn) => btn.addEventListener("click", closeSearch));
   input.addEventListener("input", render);
+  results.addEventListener("click", (e) => {
+    const idea = e.target.closest("[data-search-idea]");
+    if (!idea) return;
+    input.value = idea.dataset.searchIdea;
+    render();
+    input.focus();
+  });
   $("form", overlay).addEventListener("submit", (e) => {
     e.preventDefault();
     $("a", results)?.click(); // Enter opens the first result

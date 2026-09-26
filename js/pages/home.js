@@ -6,16 +6,21 @@
 
 import { initHeader } from "../core/header.js";
 import { initBag } from "../core/bag.js";
+import { initWishlist } from "../core/wishlist.js";
+import { initReveals } from "../core/reveal.js";
 import { initSearch } from "../core/search.js";
 import { initMotion, splitLines, appear, getSmoother } from "../core/motion.js";
 import { createDepth } from "../core/depth.js";
 import { createSpin, frameURL } from "../core/spin.js";
 import { createMap3d } from "../core/map3d.js";
-import { cardHTML, initCards } from "../core/cards.js";
+import { cardHTML } from "../core/cards.js";
+import { ritualRowsHTML, ritualRowsMotion } from "../core/ritual-rows.js";
+import { openLightbox } from "../core/lightbox.js";
+import { plinthSetHTML } from "../core/plinth.js";
 import { PRODUCTS, productsByBrand, productURL } from "../data/products.js";
 import { visibleBrands, brandURL } from "../data/brands.js";
 import { ORIGINS } from "../data/origins.js";
-import { esc, formatCoords, finePointer, hasGSAP, $, $$ } from "../core/format.js";
+import { esc, formatCoords, finePointer, hasGSAP, icon, $, $$ } from "../core/format.js";
 
 const html = document.documentElement;
 /** The layered (desktop) hero composition; below this it stacks. Mirrors the CSS + <picture> media. */
@@ -24,6 +29,8 @@ const LAYERED = "(min-width: 768px) and (min-aspect-ratio: 601/500)";
 initHeader();
 initBag();
 initSearch();
+initWishlist();
+initReveals();
 
 /* ==========================================================================
    Render from data
@@ -56,22 +63,37 @@ function renderFour() {
   }
 }
 
-/* ---------- 8.3 data: the tubes that can turn ---------- */
+/* ---------- 8.3 data: the tubes that can turn (Update 02 §6.2: HD frames, rest stops) ---------- */
 
 const TURN_PRODUCTS = PRODUCTS.filter((p) => p.spin && !p.comingSoon);
 const TURN_LABELS = { "one-origin-face-cleanser": "Face", "one-origin-body-lotion": "Body" }; // toggle labels
 const turnState = { index: 0 };
-const sentence = (s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+const spinOf = (p) => p.spinHD || p.spin;   // 1200×1800 frames for this section
 
-/** Four callouts at 0°, 90°, 180°, 270°. target = point on the tube (fraction of the 2:3 frame). */
+/** Four callouts at the rest stops 0°, 90°, 180°, 270°. target = point on the tube (fraction of the 2:3 frame). */
 function calloutsFor(p) {
   const [c1 = "", c2 = ""] = p.claims || [];
   return [
-    { frame: 0,  text: `${sentence(p.name)}. ${p.benefit}.`, target: [0.5, 0.3], side: "right" },
-    { frame: 9,  text: `${c1}, ${c2.charAt(0).toLowerCase()}${c2.slice(1)}.`, target: [0.5, 0.52], side: "left" },
-    { frame: 18, text: "Scan to trace your origin.", target: [0.43, 0.45], side: "right" },   // the QR on the back label
-    { frame: 27, text: `${p.size}. Stands on its flip cap.`, target: [0.5, 0.86], side: "left" },
+    { frame: 0,  icon: "sparkles", text: `${p.shortName || p.name}. ${p.benefit}.`, target: [0.5, 0.32], side: "right" },
+    { frame: 9,  icon: "leaf", text: `${c1}, ${c2.charAt(0).toLowerCase()}${c2.slice(1)}.`, target: [0.5, 0.52], side: "left" },
+    { frame: 18, icon: "map-pin", text: "Scan the code to trace your origin.", target: [0.45, 0.45], side: "right" },   // the QR on the back label
+    { frame: 27, icon: "package-check", text: `${p.size}. Stands on its flip cap.`, target: [0.5, 0.86], side: "left" },
   ];
+}
+
+/* Scroll → rotation with holds: at each rest stop the tube pauses for 12% of the
+   section's scroll while that callout shows, then turns 90° to the next. */
+const HOLD = 0.12;
+const TURN = (1 - 4 * HOLD) / 4;
+function turnAt(p) {
+  let t = Math.min(1, Math.max(0, p));
+  for (let k = 0; k < 4; k += 1) {
+    if (t <= HOLD) return { frame: k * 9, stop: k };
+    t -= HOLD;
+    if (t <= TURN) return { frame: k * 9 + (9 * t) / TURN, stop: -1 };
+    t -= TURN;
+  }
+  return { frame: 36, stop: -1 };
 }
 
 function renderTurn() {
@@ -91,119 +113,69 @@ function renderCallouts() {
   const callouts = calloutsFor(p);
   list.innerHTML = callouts.map((c) => `
     <li class="turn-callout" data-frame="${c.frame}" data-side="${c.side}">
-      <span class="coords">${c.frame * 10}°</span>
-      <p>${esc(c.text)}</p>
+      ${icon(c.icon)}<p>${esc(c.text)}</p>
     </li>`).join("");
-  svg.innerHTML = callouts.map(() => `<g><path/><circle r="3.5"/></g>`).join("");
+  svg.innerHTML = callouts.map(() => `<g><path/><circle r="3"/></g>`).join("");
   const canvas = $("[data-turn-canvas]");
   canvas?.setAttribute("aria-label", `${p.fullName} turning 360 degrees`);
 }
 
-/* ---------- 8.5 data: rooms ---------- */
-
-const plinthHTML = (products) => `
-  <div class="plinth">${products.map((p) =>
-    `<img src="${esc(p.images.hero)}" alt="${esc(p.fullName)}" width="${p.spin ? 1150 : 557}" height="${p.spin ? 2047 : 1143}" loading="lazy" decoding="async">`).join("")}
-  </div>`;
-
-function roomCopy(b, { title = b.name, line = b.line, body = b.story, cta = `Shop ${b.name}`, href = brandURL(b.id) } = {}) {
-  const origin = b.originId && ORIGINS[b.originId];
-  const coords = b.coords || (origin ? formatCoords(origin.lat, origin.lon) : "");
-  return `
-    <div class="room-copy">
-      ${coords ? `<p class="coords">${esc(coords)}</p>` : ""}
-      <h3 class="room-name">${esc(title)}</h3>
-      ${line ? `<p class="t-tagline room-line">${esc(line)}</p>` : ""}
-      ${body ? `<p>${esc(body)}</p>` : ""}
-      <a class="btn-maison" href="${href}"><span>${esc(cta)}</span></a>
-    </div>`;
+/** "Read the label": the product's gallery in the lightbox, opened at the label close-up. */
+function readLabel(from) {
+  const p = TURN_PRODUCTS[turnState.index];
+  const items = (p.gallery || []).filter((g) => g.src);
+  const at = Math.max(0, items.findIndex((g) => /-label\.webp$/.test(g.src)));
+  openLightbox({ items, index: at, from });
 }
 
-const ROOMS = {
-  "one-origin": (b) => `
-    <article class="room room--one-origin" style="--room-bg:${b.room.bg}" aria-label="${esc(b.name)}">
-      <div class="room-art">
-        <div class="room-ridges" data-ridges aria-hidden="true"></div>
-        <div class="room-branch" data-branch aria-hidden="true"></div>
-        ${plinthHTML(productsByBrand(b.id).filter((p) => !p.comingSoon))}
-      </div>
-      ${roomCopy(b)}
-    </article>`,
+/* ---------- 8.5 data: rooms — one shared template (Update 02 §6.1) ---------- */
 
-  larrive: (b) => {
-    const p = productsByBrand(b.id)[0];
-    return `
-    <article class="room room--larrive" style="--room-bg:${b.room.bg}" aria-label="${esc(b.name)}">
-      <div class="room-art">
-        <figure class="artwork">
-          <span class="artwork-frame"><img src="${esc(p.images.campaign)}" alt="L’Arrivé campaign: the bottle in dark blue light" width="1024" height="1536" loading="lazy" decoding="async"></span>
-          <figcaption>${esc(b.name)}, campaign, 2026</figcaption>
-        </figure>
-        ${plinthHTML([p])}
+const pad2 = (n) => String(n).padStart(2, "0");
+const firstSentence = (t = "") => t.split(/(?<=\.)\s/)[0];
+
+function roomProducts(b) {
+  const list = productsByBrand(b.id);
+  return b.status === "coming" ? list : list.filter((p) => !p.comingSoon);
+}
+
+function roomHTML(b, i, total) {
+  const origin = b.originId && ORIGINS[b.originId];
+  const coords = b.coords || (origin ? formatCoords(origin.lat, origin.lon) : "");
+  const products = roomProducts(b);
+  const coming = b.status !== "live";
+  const story = b.status === "coming" ? "A new fragrance from Jiai Life. Its name arrives soon."
+    : b.status === "teaser" ? "Coming to the house." : (b.roomStory || firstSentence(b.story));
+  const cta = coming
+    ? `<button type="button" class="btn-maison" data-notify="${esc(products[0]?.id || b.id)}"><span>Notify me</span></button>`
+    : `<a class="btn-maison" href="${brandURL(b.id)}"><span>Shop ${esc(b.name)}</span></a>`;
+  return `
+    <article class="room room--${esc(b.status)}${b.status === "coming" ? " room--coming" : ""} warm-light" data-room aria-label="${esc(b.name)}">
+      <div class="room-copy">
+        <p class="t-label room-n">${pad2(i + 1)} / ${pad2(total)}</p>
+        <h3 class="t-h2 room-name">${esc(b.name)}</h3>
+        ${b.line ? `<p class="t-tagline room-line">${esc(b.line)}</p>` : ""}
+        ${coords ? `<p class="coords room-coords">${esc(coords)}</p>` : ""}
+        <p class="room-story">${esc(story)}</p>
+        ${cta}
       </div>
-      ${roomCopy({ ...b, line: `${b.line}.` })}
+      <div class="room-stage">
+        ${plinthSetHTML(products, { fallback: b.name })}
+      </div>
     </article>`;
-  },
-
-  coming: (b) => `
-    <article class="room room--coming" aria-label="${esc(b.name)}">
-      <div class="room-art">${plinthHTML(productsByBrand(b.id))}</div>
-      ${roomCopy(b, { title: `${b.name}.`, line: "", body: "Its name arrives soon.", cta: "Be the first to know", href: "#letters" })}
-    </article>`,
-
-  teaser: (b) => `
-    <article class="room room--teaser" aria-label="${esc(b.name)}">
-      <div class="room-art"><p class="room-outline" aria-hidden="true">${esc(b.name)}</p></div>
-      ${roomCopy(b, { line: "", body: "Coming to the house.", cta: "Be the first to know", href: "#letters" })}
-    </article>`,
-
-  generic: (b) => `
-    <article class="room room--generic" style="--room-bg:${b.room?.bg || "var(--porcelain)"}" aria-label="${esc(b.name)}">
-      <div class="room-art">${plinthHTML(productsByBrand(b.id))}</div>
-      ${roomCopy(b)}
-    </article>`,
-};
+}
 
 function renderRooms() {
   const track = $("[data-rooms]");
   if (!track) return;
   const brands = visibleBrands();
-  track.innerHTML = brands.map((b) =>
-    (ROOMS[b.id] || ROOMS[b.status === "coming" ? "coming" : b.status === "teaser" ? "teaser" : "generic"])(b)).join("");
-  $("[data-room-total]").textContent = brands.length;
-  // "Be the first to know" → the letters form
-  $$('.room a[href="#letters"]', track).forEach((a) => a.addEventListener("click", () => {
-    setTimeout(() => $("#letters-email")?.focus({ preventScroll: true }), 1200);
-  }));
+  track.innerHTML = brands.map((b, i) => roomHTML(b, i, brands.length)).join("");
 }
 
-/** Room illustrations are inlined lazily, when the house is within ~1.5 screens. */
-let roomArt;
-function loadRoomArt() {
-  roomArt ||= new Promise((resolve) => {
-    const house = $("[data-house]");
-    if (!house) return resolve();
-    const io = new IntersectionObserver(([e]) => {
-      if (!e.isIntersecting) return;
-      io.disconnect();
-      const inline = (sel, url) => {
-        const host = $(sel);
-        if (!host) return Promise.resolve();
-        return fetch(url).then((r) => r.text()).then((svg) => {
-          host.innerHTML = svg;
-          const el = $("svg", host);
-          el.removeAttribute("role"); el.removeAttribute("aria-label");
-          el.setAttribute("aria-hidden", "true"); el.setAttribute("focusable", "false");
-        }).catch(() => {});
-      };
-      Promise.all([
-        inline("[data-ridges]", "assets/illustrations/ladakh-range.svg"),
-        inline("[data-branch]", "assets/illustrations/sea-buckthorn.svg"),
-      ]).then(resolve);
-    }, { rootMargin: "150% 0px" });
-    io.observe(house);
-  });
-  return roomArt;
+/* ---------- Rituals, written down ---------- */
+
+function renderRituals() {
+  const host = $("[data-ritual-rows]");
+  if (host) host.innerHTML = ritualRowsHTML({ headingLevel: 3 });
 }
 
 /* ---------- 8.6 data: the rush ---------- */
@@ -271,11 +243,10 @@ boot();
 
 async function boot() {
   await firstIntent();
-  for (const render of [renderFour, renderTurn, renderRooms, renderRush]) {
+  for (const render of [renderFour, renderTurn, renderRooms, renderRush, renderRituals]) {
     render();
     await yieldToMain();
   }
-  loadRoomArt();
   initMotion(setupMotion);
 }
 
@@ -306,15 +277,15 @@ function setupMotion(c, ctx) {
   const later = (promise, fn) => promise.then((v) => { if (alive && ctx) ctx.add(() => fn(v)); });
   const steps = [
     () => heroMotion(c, cleanups),
-    () => fourMotion(c, cleanups),
     () => turnMotion(c, cleanups),
     () => mapMotion(c, cleanups, later),
-    () => houseMotion(c, cleanups, later),
+    () => houseMotion(c, cleanups),
     () => arrivedMotion(c, cleanups),
+    () => ritualRowsMotion($("[data-ritual-rows]"), { ctx, reduce: c.reduce }),
     () => {
       if (c.reduce) return;
       $$("[data-split]").forEach((el) => splitLines(el, { ctx }));
-      appear(".sec-head .coords, .mapsec-head p, .house-head p, .arrived-lede, .letters p");
+      appear(".sec-head .coords, .mapsec-head p, .house-head p, .arrived-lede, .letters p, .rituals-head .t-label");
     },
   ];
 
@@ -367,20 +338,9 @@ function heroMotion(c, cleanups) {
 
 /* ---------- 8.2 the four ---------- */
 
-function fourMotion(c, cleanups) {
-  const grid = $("[data-four]");
-  if (!grid) return;
-  const cards = initCards(grid);
-  cleanups.push(cards.destroy);
-  if (c.reduce) return;
-  gsap.from($$(".pcard", grid), {
-    z: -120, rotationX: 8, opacity: 0, transformPerspective: 900,
-    duration: 1.1, stagger: 0.12, ease: "power4.out",
-    scrollTrigger: { trigger: grid, start: "top 82%", once: true },
-  });
-}
+// The four unveil through the shared image system (js/core/reveal.js).
 
-/* ---------- 8.3 turn it in your hand ---------- */
+/* ---------- 8.3 turn it in your hand (Update 02 §6.2) ---------- */
 
 function turnMotion(c, cleanups) {
   const section = $("[data-turn]");
@@ -390,16 +350,22 @@ function turnMotion(c, cleanups) {
   const canvas = $("[data-turn-canvas]", section);
   const poster = $("[data-turn-poster]", section);
   const toggle = $("[data-turn-toggle]", section);
+  const labelBtn = $("[data-read-label]", section);
   const product = () => TURN_PRODUCTS[turnState.index];
 
-  /* Reduced motion: front and back, side by side */
+  const onLabel = () => readLabel(c.reduce ? $("[data-turn-static] img", section) : object);
+  labelBtn?.addEventListener("click", onLabel);
+  cleanups.push(() => labelBtn?.removeEventListener("click", onLabel));
+
+  /* Reduced motion: front and back, side by side (HD frames) */
   if (c.reduce) {
     const renderStatic = () => {
       const p = product();
+      const sp = spinOf(p);
       $("[data-turn-static]", section).innerHTML = [0, 18].map((f) => `
         <figure>
-          <img src="${frameURL(p.spin.path, f)}" alt="${esc(p.fullName)}, ${f ? "back, with the trace-your-origin code" : "front"}" width="720" height="1080" loading="lazy" decoding="async">
-          <figcaption>${f ? "The back: scan to trace your origin." : `${sentence(p.name)}. ${p.benefit}.`}</figcaption>
+          <img src="${frameURL(sp.path, f)}" alt="${esc(p.fullName)}, ${f ? "back, with the trace-your-origin code" : "front"}" width="1200" height="1800" loading="lazy" decoding="async">
+          <figcaption>${f ? "The back: scan the code to trace your origin." : `${p.shortName || p.name}. ${p.benefit}.`}</figcaption>
         </figure>`).join("");
     };
     renderStatic();
@@ -414,28 +380,49 @@ function turnMotion(c, cleanups) {
     return;
   }
 
+  // Never upscale a frame: the canvas's CSS height × devicePixelRatio stays ≤ 1800 (the frames' native height).
+  const capHeight = () => object.style.setProperty("--turn-cap", `${Math.floor(1800 / Math.max(1, window.devicePixelRatio || 1))}px`);
+  capHeight();
+
   const pinned = c.isDesktop;
   let active = -1;
+  let snap = null;
   const spin = createSpin(canvas, {
-    path: product().spin.path, frames: product().spin.frames,
+    path: spinOf(product()).path, frames: spinOf(product()).frames,
     mode: pinned ? "scroll" : "drag",
-    onFrame: (f) => setActive(f),
+    step: 9,                                    // arrow keys: to the next rest stop
+    onFrame: (f) => { if (!pinned) setActive(nearestStop(f)); },
+    onDragStart: () => snap?.kill(),
+    onDragEnd: (f) => snapTo(Math.round(f / 9) * 9, f),
+    onStep: (d) => snapTo(Math.round((spin.frame + d) / 9) * 9, spin.frame),
   });
-  if (!pinned) { canvas.tabIndex = 0; }
-  spin.showFirst().then(() => object.classList.add("is-drawn"));
+  if (!pinned) canvas.tabIndex = 0;
 
-  // The rest of the frames load when the section is within one viewport.
+  /** Phones: after a drag (or an arrow key) the tube settles on the nearest rest angle. */
+  function snapTo(target, from) {
+    snap?.kill();
+    // go the short way round
+    let to = target;
+    while (to - from > 18) to -= 36;
+    while (from - to > 18) to += 36;
+    const proxy = { f: from };
+    snap = gsap.to(proxy, { f: to, duration: 0.5, ease: "power3.out", onUpdate: () => spin.setFrame(proxy.f) });
+  }
+
+  // HD frames load only when the section is within one viewport.
   const io = new IntersectionObserver(([e]) => {
     if (!e.isIntersecting) return;
     io.disconnect();
+    spin.showFirst().then(() => object.classList.add("is-drawn"));
     spin.load();
   }, { rootMargin: "100% 0px" });
   io.observe(section);
 
-  /* callouts + leader lines */
+  /* callouts + hairline leaders */
   const items = () => $$(".turn-callout", section);
   const leaders = () => $$("[data-turn-leaders] g", section);
   const circDist = (a, b) => { const d = Math.abs(a - b) % 36; return Math.min(d, 36 - d); };
+  const nearestStop = (f) => [0, 9, 18, 27].reduce((best, s, i) => (circDist(f, s) < circDist(f, [0, 9, 18, 27][best]) ? i : best), 0);
 
   function layoutCallouts() {
     if (!pinned) return;
@@ -443,28 +430,26 @@ function turnMotion(c, cleanups) {
     const or = object.getBoundingClientRect();
     const svg = $("[data-turn-leaders]", section);
     svg.setAttribute("viewBox", `0 0 ${sr.width} ${sr.height}`);
-    const gap = Math.max(40, sr.width * 0.045);
+    const gap = Math.max(48, sr.width * 0.05);
+    // the tube itself is the middle half of the frame: leaders stop at its edge, cards never cover it
+    const tubeL = or.left - sr.left + or.width * 0.24, tubeR = or.left - sr.left + or.width * 0.76;
     const callouts = calloutsFor(product());
     items().forEach((li, i) => {
       const c0 = callouts[i];
-      const tx = or.left - sr.left + c0.target[0] * or.width;
       const ty = or.top - sr.top + c0.target[1] * or.height;
       const right = c0.side === "right";
-      const x = right ? or.right - sr.left + gap : or.left - sr.left - gap - li.offsetWidth;
+      const x = right ? tubeR + gap : tubeL - gap - li.offsetWidth;
       li.style.left = `${x}px`;
-      li.style.top = `${ty - 12}px`;
-      const sx = right ? x - 14 : x + li.offsetWidth + 14;
+      li.style.top = `${ty - li.offsetHeight / 2}px`;
+      const sx = right ? x : x + li.offsetWidth;
+      const tx = right ? tubeR - 6 : tubeL + 6;
       const [path, dot] = leaders()[i].children;
       path.setAttribute("d", `M${sx},${ty} L${tx},${ty}`);
       dot.setAttribute("cx", tx); dot.setAttribute("cy", ty);
     });
   }
 
-  function setActive(frame) {
-    const callouts = calloutsFor(product());
-    let next = -1;
-    if (pinned) next = callouts.findIndex((co) => circDist(frame, co.frame) <= 4);
-    else next = callouts.reduce((best, co, i) => (circDist(frame, co.frame) < circDist(frame, callouts[best].frame) ? i : best), 0);
+  function setActive(next) {
     if (next === active) return;
     const lis = items();
     if (!pinned) {
@@ -479,33 +464,36 @@ function turnMotion(c, cleanups) {
       gsap.to(lg[active].children[1], { opacity: 0, duration: 0.2, overwrite: true });
     }
     if (next > -1) {
-      gsap.fromTo(lis[next], { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.7, ease: "power4.out", overwrite: true });
-      // the hairline draws from the callout to the product
-      gsap.fromTo(lg[next].children[0], { drawSVG: "0%" }, { drawSVG: "100%", duration: 0.6, ease: "power3.inOut", overwrite: true });
-      // dots fade rather than scale: their position changes on resize, a scale origin would go stale
-      gsap.fromTo(lg[next].children[1], { opacity: 0 }, { opacity: 1, duration: 0.3, delay: 0.45, ease: "none", overwrite: true });
+      gsap.fromTo(lis[next], { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out", overwrite: true });
+      gsap.fromTo(lg[next].children[0], { drawSVG: "0%" }, { drawSVG: "100%", duration: 0.5, ease: "power3.inOut", overwrite: true });
+      gsap.fromTo(lg[next].children[1], { opacity: 0 }, { opacity: 1, duration: 0.3, delay: 0.35, ease: "none", overwrite: true });
     }
     active = next;
   }
 
+  let st = null;
   const resetCallouts = () => {
     active = -1;
     gsap.set(items(), { opacity: pinned ? 0 : "", y: 0 });
     layoutCallouts();
     leaders().forEach((g) => { gsap.set(g.children[0], { drawSVG: "0%" }); gsap.set(g.children[1], { opacity: 0 }); });
-    setActive(spin.frame);
+    setActive(pinned ? turnAt(st ? st.progress : 0).stop : nearestStop(spin.frame));
   };
 
   if (pinned) {
-    ScrollTrigger.create({
-      trigger: section, start: "top top", end: "+=180%", pin: true, scrub: true,
-      onUpdate: (self) => spin.progress(self.progress),
+    st = ScrollTrigger.create({
+      trigger: section, start: "top top", end: "+=320%", pin: true, scrub: 0.6,
+      onUpdate: (self) => {
+        const t = turnAt(self.progress);
+        spin.setFrame(t.frame);
+        setActive(t.stop);
+      },
       onRefresh: () => { layoutCallouts(); },
     });
   }
   resetCallouts();
 
-  /* Face / Body: cross-fade (0.4s) and keep the same progress */
+  /* Face / Body: cross-fade (0.4s) and keep the same angle */
   const onToggle = (e) => {
     const btn = e.target.closest("[data-turn-index]");
     if (!btn || Number(btn.dataset.turnIndex) === turnState.index) return;
@@ -517,7 +505,7 @@ function turnMotion(c, cleanups) {
         const p = product();
         poster.src = frameURL(p.spin.path, 0);
         resetCallouts();
-        spin.setPath(p.spin.path).then(() => {
+        spin.setPath(spinOf(p).path).then(() => {
           gsap.to(object, { opacity: 1, duration: 0.2, ease: "none" });
           spin.load();
         });
@@ -525,12 +513,13 @@ function turnMotion(c, cleanups) {
     });
   };
   toggle.addEventListener("click", onToggle);
-  const onResize = () => layoutCallouts();
+  const onResize = () => { capHeight(); layoutCallouts(); };
   window.addEventListener("resize", onResize);
   cleanups.push(() => {
     toggle.removeEventListener("click", onToggle);
     window.removeEventListener("resize", onResize);
     io.disconnect();
+    snap?.kill();
     spin.destroy();
     canvas.removeAttribute("tabindex");
     items().forEach((li) => { li.classList.remove("is-active"); li.style.left = li.style.top = ""; });
@@ -615,42 +604,29 @@ function crosshair(map, wrap) {
 
 /* ---------- 8.5 the house ---------- */
 
-function houseMotion(c, cleanups, later) {
+function houseMotion(c, cleanups) {
   const section = $("[data-house]");
   if (!section) return;
   const track = $("[data-rooms]", section);
   const viewport = $(".house-viewport", section);
   const rooms = $$(".room", track);
-  const index = $("[data-room-index]", section);
 
   if (c.reduce) return; // stacked, final states (CSS)
 
   let horizontal = null;
   if (c.isDesktop) {
     const distance = () => Math.max(0, track.scrollWidth - viewport.clientWidth);
-    let centres = [];
-    const measure = () => { centres = rooms.map((r) => r.offsetLeft + r.offsetWidth / 2); };
     horizontal = gsap.to(track, {
       x: () => -distance(), ease: "none",
       scrollTrigger: {
         trigger: section, start: "top top", end: () => `+=${distance()}`,
         pin: true, scrub: 1, invalidateOnRefresh: true,
-        onRefresh: measure,
-        onUpdate(self) {
-          // the room whose centre is nearest the middle of the screen
-          const mid = self.progress * distance() + viewport.clientWidth / 2;
-          let k = 0;
-          centres.forEach((cx, i) => { if (Math.abs(cx - mid) < Math.abs(centres[k] - mid)) k = i; });
-          if (index.textContent !== String(k + 1)) index.textContent = k + 1;
-        },
       },
     });
-    measure();
 
     // Keyboard: tabbing into a room scrolls the page to where the track shows that room.
     // (The browser also scrolls clipped ancestors sideways to reveal focus; undo that, the
     // pin does the moving.)
-    // Every clipped ancestor up to the section (room, viewport, the section itself) may have been scrolled.
     const unscroll = (el) => { for (let n = el; n && n !== section.parentElement; n = n.parentElement) if (n.scrollLeft) n.scrollLeft = 0; };
     const onFocus = (e) => {
       const room = e.target.closest(".room");
@@ -671,51 +647,20 @@ function houseMotion(c, cleanups, later) {
 
   // Triggers inside the moving track use containerAnimation; stacked rooms use plain scroll.
   const within = (room, vars) => ({ trigger: room, ...(horizontal ? { containerAnimation: horizontal } : {}), ...vars });
+  const arriving = horizontal
+    ? { start: "left right", end: "center 55%", scrub: true }       // the last room stops just right of centre
+    : { start: "top bottom", end: "center center", scrub: true };
 
-  // Nº 2: soft focus that sharpens as the room centres
-  $$(".room--coming .plinth img", track).forEach((img) => {
-    const room = img.closest(".room");
-    gsap.fromTo(img, { filter: "blur(6px)" }, {
-      filter: "blur(0px)", ease: "none",
-      scrollTrigger: within(room, horizontal
-        // the last room stops just right of centre, so finish a little early
-        ? { start: "left right", end: "center 60%", scrub: true }
-        : { start: "top bottom", end: "center center", scrub: true }),
-    });
+  rooms.forEach((room) => {
+    // As the room comes to the centre, the products rise 24px into place and the plinth's shadow tightens.
+    gsap.fromTo($$(".room-prod", room), { y: 24 }, { y: 0, ease: "none", scrollTrigger: within(room, arriving) });
+    const shadow = $("[data-plinth-shadow]", room);
+    if (shadow) gsap.fromTo(shadow, { scaleX: 1.18, opacity: 0.45 }, { scaleX: 1, opacity: 1, ease: "none", scrollTrigger: within(room, arriving) });
   });
 
-  // One Origin: ridges parallax, sea-buckthorn grows in
-  later(loadRoomArt(), () => {
-    const room = $(".room--one-origin", track);
-    if (!room) return;
-    // Near ridges move; the far ones, the snow and the sun stay (far = slow).
-    [2, 3, 4].forEach((n) => {
-      const ridge = $(`.ridge-${n}`, room);
-      if (!ridge) return;
-      const shift = (n - 1) * 45;
-      gsap.fromTo(ridge, { x: shift, scaleX: 1.12, svgOrigin: "1200 900" }, {
-        x: -shift, ease: "none",
-        scrollTrigger: within(room, horizontal
-          ? { start: "left right", end: "right left", scrub: true }
-          : { start: "top bottom", end: "bottom top", scrub: true }),
-      });
-    });
-
-    const branch = $("[data-branch] svg", room);
-    if (!branch) return;
-    const leaves = $$(".leaf", branch);
-    leaves.forEach((leaf) => {
-      const m = leaf.getAttribute("d").match(/M\s*([-\d.]+)[ ,]([-\d.]+)/);
-      if (m) gsap.set(leaf, { svgOrigin: `${m[1]} ${m[2]}` }); // leaves grow from where they join the twig
-    });
-    gsap.timeline({
-      scrollTrigger: within(room, horizontal
-        ? { start: "left 65%", toggleActions: "play none none reverse" }
-        : { start: "top 65%", toggleActions: "play none none reverse" }),
-    })
-      .from($$("#branch path", branch), { drawSVG: "0%", duration: 1.3, stagger: 0.18, ease: "power2.inOut" })
-      .from(leaves, { scale: 0, duration: 0.7, stagger: 0.015, ease: "power4.out" }, 0.45)
-      .from($$(".berry", branch), { scale: 0, transformOrigin: "50% 50%", duration: 0.5, stagger: 0.06, ease: "power4.out" }, 1.05);
+  // Nº 2: soft focus that sharpens as the room centres
+  $$(".room--coming .room-prod img", track).forEach((img) => {
+    gsap.fromTo(img, { filter: "blur(6px)" }, { filter: "blur(0px)", ease: "none", scrollTrigger: within(img.closest(".room"), arriving) });
   });
 }
 

@@ -1,27 +1,33 @@
 /* ==========================================================================
-   Brand page (brand.html?b=…) — §9.3
-   Live brand: three-layer hero (porcelain field · giant name · lead product
-   cutout) with pointer depth, then story, pieces (tilt cards) and an origin
-   strip (slim tilted map with the brand's route).
-   Coming / teaser brand: "Arriving soon" with the newsletter.
-   Unknown id: the houses that are here.
+   Brand page (brand.html?b=…) — §9.3, rebuilt in Update 02 §7.
+   Hero: a clean split, no text over images. Left: the name (H1), the italic
+   line, coordinates, a two-line story and "Shop now ↓". Right: the ivory
+   stage with the CSS plinth and the brand's products (as in the home rooms).
+   Then the pieces as product cards (3 / 2 / 2 columns) and the origin strip
+   (the slim tilted map with the brand's route).
+   Coming / teaser brand: the same split hero with "Arriving soon" and the
+   newsletter. Unknown id: the houses that are here.
    ========================================================================== */
 
 import { initHeader } from "../core/header.js";
 import { initBag } from "../core/bag.js";
+import { initWishlist } from "../core/wishlist.js";
+import { initReveals } from "../core/reveal.js";
 import { initSearch } from "../core/search.js";
 import { initMotion, splitLines, appear, whenScriptsReady, afterPaint } from "../core/motion.js";
-import { createDepth } from "../core/depth.js";
 import { createMap3d } from "../core/map3d.js";
-import { cardHTML, initCards } from "../core/cards.js";
+import { cardHTML } from "../core/cards.js";
+import { plinthSetHTML } from "../core/plinth.js";
 import { productsByBrand } from "../data/products.js";
 import { getBrand, visibleBrands, brandURL } from "../data/brands.js";
 import { ORIGINS, BATCHES, ARRIVAL_ORIGIN_ID } from "../data/origins.js";
-import { esc, formatCoords, imageSize, $, $$ } from "../core/format.js";
+import { esc, formatCoords, icon, $, $$ } from "../core/format.js";
 
 initHeader();
 initBag();
 initSearch();
+initWishlist();
+initReveals();
 
 const root = $("[data-brand-page]");
 const brand = getBrand(new URLSearchParams(location.search).get("b"));
@@ -31,6 +37,7 @@ const coordsOf = (b) => {
   const o = b.originId && ORIGINS[b.originId];
   return b.coords || (o ? formatCoords(o.lat, o.lon) : "");
 };
+const firstSentence = (t = "") => t.split(/(?<=\.)\s/)[0];
 const setMeta = (title, desc) => {
   document.title = `${title} | Jiai Life`;
   $('meta[property="og:title"]')?.setAttribute("content", document.title);
@@ -40,53 +47,53 @@ const setMeta = (title, desc) => {
   }
 };
 
+/** The split hero, shared by live and coming brands. `action` is the call to action under the story. */
+function heroHTML(b, { products, label, story, action }) {
+  const coords = coordsOf(b);
+  return `
+    <section class="bhero" aria-labelledby="bhero-title">
+      <div class="bhero-copy">
+        ${label ? `<p class="t-label bhero-label">${esc(label)}</p>` : ""}
+        <h1 id="bhero-title" class="t-h1 bhero-name">${esc(b.name)}</h1>
+        ${b.line ? `<p class="t-tagline bhero-line">${esc(b.line)}.</p>` : ""}
+        ${coords ? `<p class="coords bhero-coords">${esc(coords)}</p>` : ""}
+        <p class="bhero-story">${esc(story)}</p>
+        ${action}
+      </div>
+      <div class="bhero-stage room-stage warm-light">
+        ${plinthSetHTML(products, { eager: true, fallback: b.name })}
+      </div>
+    </section>`;
+}
+
 /* ---------- live brand ---------- */
 
 function renderLive(b) {
   const pieces = productsByBrand(b.id);
-  const lead = pieces.find((p) => !p.comingSoon) || pieces[0];
-  const leadImg = lead ? (lead.images.cutout || lead.images.hero) : "";
-  const [w, h] = imageSize(leadImg);
   const origin = b.originId && ORIGINS[b.originId];
   const batch = Object.entries(BATCHES).find(([, x]) => x.originId === b.originId)?.[0];
 
-  root.innerHTML = `
-    <section class="bhero" aria-labelledby="bhero-title" style="--bhero-bg:${b.room?.bg || "var(--porcelain)"}">
-      <div class="bhero-stage" data-bhero-stage>
-        <div class="bhero-scene" data-bhero-scene>
-          <div class="bhero-layer bhero-layer--field" aria-hidden="true"><div class="bhero-depth bhero-field"></div></div>
-          <div class="bhero-layer bhero-layer--type">
-            <div class="bhero-depth"><h1 id="bhero-title" class="t-giant bhero-name">${esc(b.name)}</h1></div>
-          </div>
-          ${lead ? `<div class="bhero-layer bhero-layer--front" aria-hidden="true">
-            <div class="bhero-depth"><img class="bhero-img" src="${esc(leadImg)}" alt="" width="${w}" height="${h}" fetchpriority="high" decoding="async"></div>
-          </div>` : ""}
-        </div>
-        <div class="wrap bhero-foot">
-          ${b.line ? `<p class="t-tagline bhero-line">${esc(b.line)}.</p>` : ""}
-          ${coordsOf(b) ? `<p class="coords">${esc(coordsOf(b))}</p>` : ""}
-        </div>
-      </div>
-    </section>
+  root.innerHTML = heroHTML(b, {
+    products: pieces.filter((p) => !p.comingSoon),
+    label: [b.category, origin?.name].filter(Boolean).join(" · "),
+    story: b.roomStory || firstSentence(b.story),
+    action: `<a class="btn-maison" href="#pieces"><span>Shop now ${icon("chevron-down")}</span></a>`,
+  }) + `
 
-    <section class="section bstory" aria-label="The story">
-      <div class="wrap bstory-inner">
-        <p class="coords">${esc(b.category || "")}${origin ? ` · ${esc(origin.name)}` : ""}</p>
-        <p class="bstory-text">${esc(b.story || "")}</p>
-      </div>
-    </section>
-
-    <section class="section bpieces" aria-labelledby="bpieces-title">
+    <section class="section bpieces" id="pieces" aria-labelledby="bpieces-title">
       <div class="wrap">
-        <h2 id="bpieces-title" data-split>The pieces.</h2>
-        <div class="ritual-grid" style="--n:${Math.min(4, Math.max(1, pieces.length))}">
-          ${pieces.map((p) => cardHTML(p, { price: true })).join("")}
+        <div class="sec-head">
+          <h2 id="bpieces-title" data-split>The pieces.</h2>
+          <p class="coords">${pieces.length} ${pieces.length === 1 ? "piece" : "pieces"}</p>
+        </div>
+        <div class="card-grid bpieces-grid">
+          ${pieces.map((p) => cardHTML(p, { headingLevel: 3 })).join("")}
         </div>
       </div>
     </section>
 
     ${origin && ROUTE_OF[b.originId] ? `
-    <section class="bmap" aria-labelledby="bmap-title">
+    <section class="bmap" id="origin" aria-labelledby="bmap-title">
       <div class="wrap bmap-head">
         <h2 id="bmap-title" data-split>Where it begins.</h2>
         <div class="bmap-copy">
@@ -103,23 +110,18 @@ function renderLive(b) {
 /* ---------- coming / teaser brand ---------- */
 
 function renderComing(b) {
-  const piece = productsByBrand(b.id)[0];
-  const [w, h] = piece ? imageSize(piece.images.hero) : [0, 0];
-  root.innerHTML = `
-    <section class="bcoming wrap" aria-labelledby="bcoming-title">
-      <div class="bcoming-copy">
-        <p class="coords">${esc(b.category || "Coming to the house")}</p>
-        <h1 id="bcoming-title" class="t-giant bcoming-name">${esc(b.name)}</h1>
-        <p class="t-tagline bcoming-line">Arriving soon.</p>
-        <p>${esc(b.line && b.status === "coming" ? `${b.line}. ` : "")}Leave your email and the first letter about it comes to you.</p>
-        <form class="inline-form" data-newsletter novalidate>
-          <label class="visually-hidden" for="coming-email">Email address</label>
-          <input class="field" id="coming-email" type="email" name="email" autocomplete="email" placeholder="Email address" required>
-          <button type="submit" class="btn-maison"><span>Be the first to know</span></button>
-        </form>
-      </div>
-      ${piece ? `<div class="bcoming-media"><img src="${esc(piece.images.hero)}" alt="" width="${w}" height="${h}" fetchpriority="high" decoding="async"></div>` : ""}
-    </section>`;
+  root.innerHTML = heroHTML(b, {
+    products: productsByBrand(b.id),
+    label: b.status === "coming" ? `${b.category || "Coming to the house"} · Arriving soon` : "Coming to the house",
+    story: "Its name, and its notes, arrive soon. Leave your email and the first letter about it comes to you.",
+    action: `
+      <form class="inline-form bhero-form" data-newsletter novalidate>
+        <label class="visually-hidden" for="coming-email">Email address</label>
+        <input class="field" id="coming-email" type="email" name="email" autocomplete="email" placeholder="Email address" required>
+        <button type="submit" class="btn-maison"><span>Be the first to know</span></button>
+      </form>`,
+  });
+  root.querySelector(".bhero")?.classList.add("bhero--coming");
   setMeta(b.name, `${b.name}: arriving soon at Jiai Life.`);
 }
 
@@ -147,34 +149,21 @@ else renderComing(brand);
 let mapPromise;
 // Content is already rendered (async module); motion starts once the CDN scripts are in.
 whenScriptsReady().then(afterPaint).then(() => initMotion((c, ctx) => {
-  const cleanups = [];
-  const cards = initCards(root);
-  cleanups.push(cards.destroy);
-
-  const stage = $("[data-bhero-stage]");
-  if (stage && !c.reduce) {
-    // Load: the name rises from its line mask (character-by-character is the home hero's alone),
-    // the product settles in front of it.
-    const name = $(".bhero-name", stage);
+  const hero = $(".bhero", root);
+  if (hero && !c.reduce) {
+    // Load: the name rises from its line mask and the copy follows. The products (the page's
+    // largest image) are simply there: no entrance on the LCP.
+    const name = $(".bhero-name", hero);
     if (window.SplitText) {
       const split = SplitText.create(name, { type: "lines", mask: "lines" });
       gsap.from(split.lines, { yPercent: 110, duration: 1, stagger: 0.08, ease: "power4.out", delay: 0.1 });
     }
-    gsap.from(".bhero-img", { y: 30, scale: 0.97, opacity: 0, duration: 0.9, ease: "power4.out", delay: 0.35 });
-    gsap.from(".bhero-foot > *", { y: 16, opacity: 0, duration: 0.8, stagger: 0.1, ease: "power4.out", delay: 0.65 });
-    if (c.isDesktop) {
-      const depth = createDepth(stage, [
-        { el: $(".bhero-layer--field .bhero-depth", stage), depth: 6 },
-        { el: $(".bhero-layer--type .bhero-depth", stage), depth: 14 },
-        { el: $(".bhero-layer--front .bhero-depth", stage), depth: 26 },
-      ], { rotate: 2.5, rotateEl: $("[data-bhero-scene]", stage) });
-      cleanups.push(depth.destroy);
-    }
+    gsap.from($$(".bhero-copy > :not(.bhero-name)", hero), { y: 16, opacity: 0, duration: 0.8, stagger: 0.08, ease: "power3.out", delay: 0.35 });
   }
 
   if (!c.reduce) {
     $$("[data-split]", root).forEach((el) => splitLines(el, { ctx }));
-    appear(".bstory-text, .bmap-copy p");
+    appear(".bmap-copy p");
   }
 
   // Origin strip: a slim tilted map; the route draws once as it arrives.
@@ -189,6 +178,4 @@ whenScriptsReady().then(afterPaint).then(() => initMotion((c, ctx) => {
       ScrollTrigger.create({ trigger: host, start: "top 75%", once: true, onEnter: () => tl.duration(2.4).play() });
     }));
   }
-
-  return () => cleanups.forEach((fn) => fn());
 }));

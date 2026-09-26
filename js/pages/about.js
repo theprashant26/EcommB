@@ -6,6 +6,8 @@
 
 import { initHeader } from "../core/header.js";
 import { initBag } from "../core/bag.js";
+import { initWishlist } from "../core/wishlist.js";
+import { initReveals } from "../core/reveal.js";
 import { initSearch } from "../core/search.js";
 import { initMotion, splitLines } from "../core/motion.js";
 import { $, $$ } from "../core/format.js";
@@ -13,6 +15,8 @@ import { $, $$ } from "../core/format.js";
 initHeader();
 initBag();
 initSearch();
+initWishlist();
+initReveals();
 
 initMotion((c, ctx) => {
   if (c.reduce) return; // final states: the text is simply there

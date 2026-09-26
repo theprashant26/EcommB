@@ -56,7 +56,8 @@ export async function preloadFrames(path, frames = 36, { concurrency = 6, onProg
 /**
  * createSpin(canvas, { path, frames:36, mode:"scroll"|"drag"|"hover", target, onFrame })
  *   scroll: caller drives it with .progress(p) (0 → 1).
- *   drag:   horizontal drag on the canvas, 1 frame per 12px; arrow keys turn 10°.
+ *   drag:   horizontal drag on the canvas, 1 frame per 12px; arrow keys turn `step` frames
+ *           (default 1 = 10°); onDragEnd fires when the pointer lets go.
  *   hover:  pointer x across `target` (default the canvas) maps to frames 0–35.
  */
 export function createSpin(canvas, opts = {}) {
@@ -157,12 +158,13 @@ export function createSpin(canvas, opts = {}) {
       if (!dragging) return;
       api.setFrame(startFrame - (e.clientX - startX) / 12);
     });
-    const end = () => { dragging = false; };
+    const end = () => { if (dragging) { dragging = false; opts.onDragEnd?.(current); } };
     on(canvas, "pointerup", end);
     on(canvas, "pointercancel", end);
     on(canvas, "keydown", (e) => {
-      if (e.key === "ArrowLeft") { e.preventDefault(); api.setFrame(current + 1); }
-      if (e.key === "ArrowRight") { e.preventDefault(); api.setFrame(current - 1); }
+      const step = opts.step || 1;
+      if (e.key === "ArrowLeft") { e.preventDefault(); opts.onStep ? opts.onStep(step) : api.setFrame(current + step); }
+      if (e.key === "ArrowRight") { e.preventDefault(); opts.onStep ? opts.onStep(-step) : api.setFrame(current - step); }
     });
   }
 

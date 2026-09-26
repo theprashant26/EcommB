@@ -1,192 +1,273 @@
 /* ==========================================================================
-   Product page (product.html?id=…) — §9.1
-   Sticky gallery · story column · price after story · sticky buy bar ·
-   360° viewer · "Complete the ritual" · JSON-LD Product.
+   Product page (product.html?id=…) — rebuilt in Update 02 §9, following the
+   client's reference screenshots in this site's language.
+   Top: gallery (vertical thumbnail rail + a 4:5 ivory main stage that is also
+   the phone carousel and the 360° viewer; click → lightbox) and the buy box
+   (brand + share, name, rating, price, size + quantity, Add to Cart + heart,
+   assurances). Then: Delivery Options (PIN check), the Product Details /
+   Description / Special Features tabs, Where it's from, Ratings & Reviews with
+   Rate This Product, and Complete the ritual. A sticky bar keeps "Add to Cart"
+   close once the buy box has scrolled away (always on phones).
    Everything renders from js/data; an unknown id shows the whole range.
    ========================================================================== */
 
 import { initHeader } from "../core/header.js";
-import { initBag } from "../core/bag.js";
+import { initBag, bagSubtotal, bagHas } from "../core/bag.js";
+import { initWishlist, wishButtonHTML } from "../core/wishlist.js";
+import { initReveals } from "../core/reveal.js";
 import { initSearch } from "../core/search.js";
-import { initMotion, splitLines, getSmoother, whenScriptsReady, afterPaint } from "../core/motion.js";
-import { createDepth } from "../core/depth.js";
-import { createSpin } from "../core/spin.js";
+import { initMotion, splitLines, whenScriptsReady, afterPaint } from "../core/motion.js";
+import { createSpin, frameURL } from "../core/spin.js";
 import { createMap3d } from "../core/map3d.js";
-import { cardHTML, initCards } from "../core/cards.js";
+import { cardHTML } from "../core/cards.js";
+import { openLightbox } from "../core/lightbox.js";
+import { reviewsSectionHTML, initReviews, ratingFor } from "../core/reviews.js";
+import { deliveryHTML, initDelivery } from "../core/delivery.js";
+import { shareButtonHTML, initShare } from "../core/share.js";
+import { initTabs } from "../core/tabs.js";
+import { nameForTransition } from "../core/transitions.js";
 import { CONFIG } from "../data/config.js";
 import { PRODUCTS, getProduct } from "../data/products.js";
 import { getBrand, brandURL } from "../data/brands.js";
 import { ORIGINS, BATCHES, ARRIVAL_ORIGIN_ID } from "../data/origins.js";
-import { esc, formatPrice, formatCoords, imageSize, reducedMotion, $, $$ } from "../core/format.js";
-import { toast } from "../core/toast.js";
+import { esc, formatPrice, formatCoords, imageSize, icon, priceHTML, reducedMotion, $, $$ } from "../core/format.js";
 
 initHeader();
 initBag();
 initSearch();
+initWishlist();
+initReveals();
 
 const root = $("[data-pdp]");
 const id = new URLSearchParams(location.search).get("id");
 const product = id && getProduct(id);
 const brand = product && getBrand(product.brand);
 
-/* ==========================================================================
-   Render
-   ========================================================================== */
-
-const img = (src, alt, { eager = false, cls = "" } = {}) => {
-  const [w, h] = imageSize(src);
-  return `<img class="${cls}" src="${esc(src)}" alt="${esc(alt)}" width="${w}" height="${h}" decoding="async"${eager ? ' fetchpriority="high"' : ' loading="lazy"'}>`;
-};
-
-const priceText = (p) => (p.comingSoon ? "Arrives soon" : CONFIG.showPrices ? formatPrice(p.price) : "Price at launch");
 const buyable = (p) => !p.comingSoon && CONFIG.showPrices;
 const batchFor = (p) => Object.entries(BATCHES).find(([, b]) => b.productId === p.id)?.[0];
 /** Routes on the mini map: the product's origin → New Delhi. */
 const ROUTE_OF = { "leh-ladakh": { routes: ["leh"], pins: ["leh", "delhi"] }, paris: { routes: ["paris"], pins: ["paris", "delhi"] } };
+/** Values still waiting for the client read "To be confirmed" on the page (the TODO stays in the data). */
+const clean = (v = "") => {
+  if (!/TODO\(client\)/.test(v)) return v;
+  const rest = v.replace(/\s*(—|:)?\s*TODO\(client\).*$/, "").trim();
+  return rest ? `${rest} (details to be confirmed)` : "To be confirmed";
+};
 
-function gallery(p) {
-  const shots = [
-    { src: p.images.hero, alt: `${p.fullName}` },
-    p.images.angle && { src: p.images.angle, alt: `${p.fullName}, seen at an angle` },
-    p.images.back && { src: p.images.back, alt: `${p.fullName}, the back label with the code that traces its origin` },
-    p.images.campaign && { src: p.images.campaign, alt: `${p.fullName}, campaign image`, campaign: true },
-  ].filter(Boolean);
-  return shots.map((s, i) => `
-    <figure class="pdp-shot${s.campaign ? " pdp-shot--campaign" : ""}${i === 0 ? " pdp-shot--first" : ""}">
-      <span class="pdp-shot-inner"${i === 0 ? " data-pdp-hero-wrap" : ""}>
-        ${img(s.src, s.alt, { eager: i === 0, cls: i === 0 ? "pdp-hero-img" : "" })}
-      </span>
-      ${i === 0 && p.spin ? `<button type="button" class="pdp-360" data-bs-toggle="modal" data-bs-target="#viewer360" aria-label="Turn ${esc(p.fullName)} through 360 degrees">360°</button>` : ""}
-    </figure>`).join("");
-}
+/* ==========================================================================
+   Gallery
+   ========================================================================== */
 
-function accordion(p) {
-  const origin = p.originId && ORIGINS[p.originId];
-  const items = [];
+const galleryOf = (p) => (p.gallery?.length ? p.gallery : [{ src: p.images.hero, alt: p.fullName }]);
+/** The images (not the 360° tile) — what the lightbox shows. */
+const photos = (p) => galleryOf(p).filter((g) => g.src);
 
-  items.push(["what", "What it does", `<p>${esc(p.whatItDoes || p.benefit)}</p>`]);
-
-  let inside = "";
-  if (p.inside) {
-    inside = `<p>${esc(p.inside)}</p>`;
-    if (p.keyIngredient) {
-      inside += `
-        <div class="pdp-ingredient">
-          <div class="pdp-branch" data-branch aria-hidden="true"></div>
-          <p><span class="pdp-ingredient-name">${esc(p.keyIngredient)}</span>
-          ${origin?.ingredient ? `<span class="coords">${esc(origin.ingredient)}${origin.season ? `, harvested ${esc(origin.season.toLowerCase())}` : ""}</span>` : ""}</p>
+function galleryHTML(p) {
+  const items = galleryOf(p);
+  const thumb = (g, i) => g.type === "360"
+    ? `<button type="button" class="pdp-thumb pdp-thumb--360" data-go="${i}" aria-label="Turn it through 360 degrees">${icon("rotate-3d")}<span>360°</span></button>`
+    : `<button type="button" class="pdp-thumb" data-go="${i}" aria-label="Show image ${i + 1}: ${esc(g.alt)}"><img src="${esc(g.src)}" alt="" width="${imageSize(g.src)[0]}" height="${imageSize(g.src)[1]}" loading="lazy" fetchpriority="low" decoding="async"${g.fit === "cover" ? ` style="object-fit:cover;object-position:${esc(g.focus || "50% 50%")}"` : ""}></button>`;
+  let photo = -1;
+  const slide = (g, i) => {
+    if (g.type === "360") {
+      return `
+        <div class="pdp-slide pdp-slide--360" data-slide="${i}" role="group" aria-roledescription="slide" aria-label="360° view">
+          <img class="pdp-360-poster" src="${esc(frameURL(p.spin.path, 0))}" alt="" width="720" height="1080" loading="lazy" decoding="async" data-360-poster>
+          <canvas class="pdp-360" tabindex="0" role="img" aria-label="${esc(p.fullName)} turning 360 degrees. Drag, or use the arrow keys." data-360></canvas>
+          <p class="pdp-360-hint">${icon("rotate-3d")} Drag to turn</p>
         </div>`;
     }
-  }
-  if (p.notes) {
-    inside += `
-      <div class="notes">
-        ${[["top", "Top"], ["heart", "Heart"], ["base", "Base"]].map(([k, label]) => `
-          <div class="note"><h3>${label}</h3><ul>${(p.notes[k] || []).map((n) => `<li>${esc(n)}</li>`).join("")}</ul></div>`).join("")}
+    photo += 1;
+    const [w, h] = imageSize(g.src);
+    const cover = g.fit === "cover";
+    return `
+      <div class="pdp-slide" data-slide="${i}" role="group" aria-roledescription="slide" aria-label="${i + 1} of ${items.length}">
+        <button type="button" class="pdp-open${cover ? " is-cover" : ""}" data-open="${photo}" aria-label="Open full screen: ${esc(g.alt)}">
+          <img src="${esc(g.src)}" alt="${esc(g.alt)}" width="${w}" height="${h}" ${i === 0 ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async"${cover ? ` style="object-position:${esc(g.focus || "50% 50%")}"` : ""}${i === 0 ? ' data-hero-img' : ""}>
+        </button>
       </div>`;
-  }
-  if (p.longevityHours) {
+  };
+  return `
+    <div class="pdp-gallery" data-gallery>
+      <div class="pdp-rail${items.length > 5 ? " has-arrows" : ""}">
+        <button type="button" class="pdp-rail-arrow" data-rail="-1" aria-label="Earlier images" ${items.length > 5 ? "" : "hidden"}>${icon("chevron-up")}</button>
+        <ol class="pdp-thumbs" data-thumbs>${items.map((g, i) => `<li>${thumb(g, i)}</li>`).join("")}</ol>
+        <button type="button" class="pdp-rail-arrow" data-rail="1" aria-label="Later images" ${items.length > 5 ? "" : "hidden"}>${icon("chevron-down")}</button>
+      </div>
+      <div class="pdp-main">
+        <div class="pdp-stage" aria-roledescription="carousel" aria-label="${esc(p.fullName)} images">
+          <div class="pdp-track" data-track>${items.map(slide).join("")}</div>
+        </div>
+        <div class="pdp-dots" data-dots>${items.map((g, i) => `<button type="button" class="pdp-dot" data-go="${i}" aria-label="Show ${g.type === "360" ? "the 360° view" : `image ${i + 1}`}"></button>`).join("")}</div>
+      </div>
+    </div>`;
+}
+
+/* ==========================================================================
+   Buy box
+   ========================================================================== */
+
+function buyHTML(p) {
+  const r = ratingFor(p);
+  const rating = r
+    ? `<a class="pdp-rating" href="#reviews">${icon("star", "icon--filled")}<span>${r.average.toFixed(1)}</span><span class="pdp-rating-sep">·</span><span class="pdp-rating-n">${r.count} ratings</span></a>`
+    : `<a class="pdp-rating" href="#reviews"><span class="pdp-rating-n">No ratings yet</span></a>`;
+  const price = p.comingSoon
+    ? `<p class="pdp-price"><span class="price">Arrives soon</span></p>`
+    : `<p class="pdp-price">${priceHTML(p)}</p>${CONFIG.showPrices ? `<p class="pdp-tax">Inclusive of all taxes</p>` : ""}`;
+  const d = CONFIG.delivery;
+  const choices = buyable(p) ? `
+    <div class="pdp-choices">
+      ${p.size && p.size !== "TBC" ? `
+      <div class="pdp-choice">
+        <p class="t-label" id="sizeLabel">Size</p>
+        <div class="pdp-sizes" role="radiogroup" aria-labelledby="sizeLabel">
+          <button type="button" role="radio" class="size-chip" aria-checked="true">${esc(p.size)}</button>
+        </div>
+      </div>` : ""}
+      <div class="pdp-choice">
+        <p class="t-label" id="qtyLabel">Quantity</p>
+        <div class="stepper pdp-stepper" role="group" aria-labelledby="qtyLabel">
+          <button type="button" class="stepper-btn" data-qty="-1" aria-label="Decrease quantity">${icon("minus")}</button>
+          <input class="stepper-val stepper-input" id="pdpQty" type="number" inputmode="numeric" min="1" max="10" value="1" aria-label="Quantity">
+          <button type="button" class="stepper-btn" data-qty="1" aria-label="Increase quantity">${icon("plus")}</button>
+        </div>
+      </div>
+    </div>` : "";
+  const action = buyable(p)
+    ? `<button type="button" class="btn-maison btn-cart pdp-add" data-add-to-bag="${esc(p.id)}" data-qty-source="#pdpQty" data-add-from="[data-hero-img]"><span>Add to Cart</span></button>`
+    : `<button type="button" class="btn-maison pdp-add" data-notify="${esc(p.id)}"><span>Notify me</span></button>`;
+  return `
+    <div class="pdp-buy" data-buy>
+      <div class="pdp-brandrow">
+        ${brand ? `<a class="t-label pdp-brand" href="${brandURL(brand.id)}">${esc(brand.name)}</a>` : "<span></span>"}
+        ${shareButtonHTML()}
+      </div>
+      <h1 class="t-h3 pdp-name">${esc(p.comingSoon ? p.fullName : p.fullName)}</h1>
+      ${p.comingSoon ? "" : rating}
+      <div class="pdp-priceblock">${price}</div>
+      <p class="pdp-benefit">${esc(p.benefit)}${p.forWho ? `. ${esc(p.forWho)}` : ""}.</p>
+      ${choices}
+      <div class="pdp-actions">
+        ${action}
+        ${wishButtonHTML(p, "pdp-wish")}
+      </div>
+      <!-- TODO(client): confirm all three assurances -->
+      <ul class="pdp-assure">
+        ${p.comingSoon ? "" : `<li>${icon("truck")}<span>Free delivery over ${formatPrice(d.freeOver)}</span></li>`}
+        ${d.cod && !p.comingSoon ? `<li>${icon("package-check")}<span>Cash on delivery available</span></li>` : ""}
+        <li>${icon("shield-check")}<span>Authentic, traceable product</span></li>
+      </ul>
+    </div>`;
+}
+
+/* ==========================================================================
+   Sections below the top area
+   ========================================================================== */
+
+function tabsHTML(p) {
+  const details = (p.details || []).map(([k, v]) => `<tr><th scope="row">${esc(k)}</th><td${/TODO\(client\)/.test(v) ? ' class="is-tbc"' : ""}>${esc(clean(v))}</td></tr>`).join("");
+  const notes = p.notes ? `
+    <div class="notes">
+      ${[["top", "Top"], ["heart", "Heart"], ["base", "Base"]].map(([k, label]) => `
+        <div class="note"><h4>${label} notes</h4><p>${(p.notes[k] || []).map(esc).join(", ")}</p></div>`).join("")}
+    </div>` : "";
+  const dayline = p.longevityHours ? (() => {
     const end = 8 + p.longevityHours;
-    inside += `
-      <div class="dayline" data-dayline style="--hours:${p.longevityHours}">
+    return `
+      <div class="dayline" data-dayline>
         <p class="dayline-label">Lasts up to ${p.longevityHours} hours: spray at eight, still there at ${end > 12 ? end - 12 : end}.</p>
         <div class="dayline-bar" role="img" aria-label="A day from 8:00 to ${end}:00, filled for ${p.longevityHours} hours"><span></span></div>
         <div class="dayline-ticks coords" aria-hidden="true"><span>8:00</span><span>13:00</span><span>${end}:00</span></div>
       </div>`;
-  }
-  if (!inside && p.comingSoon) inside = "<p>The notes are revealed with its name.</p>";
-  if (inside) items.push(["inside", "What’s inside", inside]);
-
-  if (p.howTo?.length) {
-    items.push(["how", "How to use", `<ol class="steps">${p.howTo.map((s) => `<li>${esc(s)}</li>`).join("")}</ol>`]);
-  }
-
-  if (origin) {
-    const batch = batchFor(p);
-    const link = batch
-      ? `<a class="link-cta" href="origin.html?batch=${encodeURIComponent(batch)}">Trace your origin</a>`
-      : `<a class="link-cta" href="${brandURL(p.brand)}">Discover ${esc(brand?.name || "")}</a>`;
-    items.push(["origin", "Origin", `
-      <div class="mini-map map-stage" data-mini-map role="img" aria-label="Map of the route from ${esc(origin.name)} to ${esc(ORIGINS[ARRIVAL_ORIGIN_ID].name)}"></div>
-      <p class="coords">${esc(origin.name)}, ${formatCoords(origin.lat, origin.lon)}${origin.altitude ? `, ${esc(origin.altitude)}` : ""}</p>
-      <p>${esc(origin.text || "")}</p>
-      ${link}`]);
-  }
-
-  return `
-    <div class="accordion pdp-acc" id="pdpAcc">
-      ${items.map(([key, title, body], i) => `
-        <div class="accordion-item">
-          <h2 class="accordion-header">
-            <button class="accordion-button${i ? " collapsed" : ""}" type="button" data-bs-toggle="collapse" data-bs-target="#acc-${key}" aria-expanded="${i === 0}" aria-controls="acc-${key}">${title}</button>
-          </h2>
-          <div id="acc-${key}" class="accordion-collapse collapse${i === 0 ? " show" : ""}" data-acc="${key}">
-            <div class="accordion-body">${body}</div>
-          </div>
-        </div>`).join("")}
-    </div>`;
-}
-
-function buyBlock(p) {
-  const action = buyable(p)
-    ? `<div class="pdp-qty">
-         <label class="visually-hidden" for="pdpQty">Quantity</label>
-         <div class="stepper" role="group" aria-label="Quantity">
-           <button type="button" class="stepper-btn" data-qty="-1" aria-label="Decrease quantity"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8"/></svg></button>
-           <input class="stepper-val stepper-input" id="pdpQty" type="number" inputmode="numeric" min="1" max="10" value="1">
-           <button type="button" class="stepper-btn" data-qty="1" aria-label="Increase quantity"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8M6 2v8"/></svg></button>
-         </div>
-       </div>
-       <button type="button" class="btn-maison pdp-add" data-add-to-bag="${esc(p.id)}" data-qty-source="#pdpQty" data-add-from=".pdp-hero-img"><span>Add to bag</span></button>`
-    : `<button type="button" class="btn-maison pdp-add" data-notify><span>${p.comingSoon ? "Be the first to know" : "Notify me"}</span></button>`;
-  return `
-    <div class="pdp-buy" data-buy>
-      <p class="pdp-price">${esc(priceText(p))}</p>
-      <p class="pdp-size">${esc(p.size && p.size !== "TBC" ? p.size : "")}</p>
-      <div class="pdp-actions">${action}</div>
-      <p class="pdp-note">Free delivery across India on orders over ${formatPrice(CONFIG.freeShippingOver)}. Dispatched within two working days.</p>
-    </div>`; /* TODO(client): delivery promise */
-}
-
-function renderProduct(p) {
-  const origin = p.originId && ORIGINS[p.originId];
-  const coords = brand?.coords || (origin ? formatCoords(origin.lat, origin.lon) : "");
-  root.innerHTML = `
-    <article class="pdp wrap" data-product-card>
-      <div class="pdp-grid">
-        <div class="pdp-gallery-col" data-gallery-col>
-          <div class="pdp-gallery-frame" data-gallery-frame>
-            <div class="pdp-gallery" data-gallery>${gallery(p)}</div>
-          </div>
+  })() : "";
+  const ingredients = p.keyIngredients?.length ? `<p class="desc-sub t-label">Key ingredients</p><p>${p.keyIngredients.map(esc).join(" · ")}</p>` : "";
+  const features = p.features?.length
+    ? `<ul class="features">${p.features.map((f) => `
+        <li class="feature"><span class="feature-ico">${icon(f.icon)}</span><h4>${esc(f.title)}</h4><p>${esc(f.text)}</p></li>`).join("")}</ul>`
+    : `<p class="tab-empty">Its features are revealed with its name.</p>`;
+  const tabs = [
+    ["details", "Product Details", details ? `<table class="spec"><tbody>${details}</tbody></table>` : `<p class="tab-empty">Details arrive with the product.</p>`],
+    ["desc", "Product Description", `
+      <div class="desc">
+        <div class="desc-text">
+          <p>${esc(p.description || p.whatItDoes || p.benefit)}</p>
+          ${p.inside ? `<p>${esc(p.inside)}</p>` : ""}
+          ${ingredients}
+          ${notes}${dayline}
         </div>
-        <div class="pdp-info" data-info>
-          <nav class="crumbs" aria-label="Breadcrumb">
-            <ol>
-              <li><a class="link-draw" href="shop.html">Shop</a></li>
-              ${brand ? `<li><a class="link-draw" href="${brandURL(brand.id)}">${esc(brand.name)}</a></li>` : ""}
-              <li aria-current="page">${esc(p.name)}</li>
-            </ol>
-          </nav>
-          <p class="pdp-brand">${brand ? `<a class="link-draw" href="${brandURL(brand.id)}">${esc(brand.name)}</a>` : ""}${coords ? ` <span class="coords">${esc(coords)}</span>` : ""}</p>
-          <h1 class="pdp-name" data-split>${esc(p.comingSoon ? p.fullName : p.name)}</h1>
-          <p class="pdp-benefit">${esc(p.benefit)}${p.forWho ? `. ${esc(p.forWho)}` : ""}.</p>
-          ${CONFIG.pricePlacement === "top" ? `<p class="pdp-price pdp-price--top">${esc(priceText(p))}</p>` : ""}
-          ${p.claims?.length ? `<ul class="pdp-claims">${p.claims.map((c) => `<li>${esc(c)}</li>`).join("")}</ul>` : ""}
-          ${accordion(p)}
-          ${buyBlock(p)}
+        ${p.howTo?.length ? `<div class="desc-how"><p class="desc-sub t-label">How to use</p><ol class="steps">${p.howTo.map((s) => `<li>${esc(s)}</li>`).join("")}</ol></div>` : ""}
+      </div>`],
+    ["features", "Special Features", features],
+  ];
+  return `
+    <section class="section pdp-tabs" data-tabs aria-label="Product information">
+      <div class="wrap">
+        <div class="tablist" role="tablist" aria-label="Product information">
+          ${tabs.map(([k, label], i) => `<button type="button" role="tab" class="tab" id="tab-${k}" aria-controls="panel-${k}" aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}">${label}${i === 0 ? '<span class="tab-bar" data-tab-bar></span>' : ""}</button>`).join("")}
         </div>
+        ${tabs.map(([k, , body], i) => `<div class="tabpanel" role="tabpanel" id="panel-${k}" aria-labelledby="tab-${k}" tabindex="0"${i ? " hidden" : ""}>${body}</div>`).join("")}
       </div>
-    </article>
+    </section>`;
+}
+
+function originHTML(p) {
+  const origin = p.originId && ORIGINS[p.originId];
+  if (!origin) return "";
+  const batch = batchFor(p);
+  const link = batch
+    ? `<a class="btn-line" href="origin.html?batch=${encodeURIComponent(batch)}">${icon("map-pin")}<span>Trace your origin</span></a>`
+    : `<a class="btn-line" href="${brandURL(p.brand)}#origin">${icon("map-pin")}<span>See the origin</span></a>`;
+  return `
+    <section class="section pdp-origin" aria-labelledby="origin-title">
+      <div class="wrap pdp-origin-inner">
+        <div class="pdp-origin-copy">
+          <p class="t-label">Where it’s from</p>
+          <h2 id="origin-title" class="t-h2">${esc(origin.name)}.</h2>
+          <p class="coords">${formatCoords(origin.lat, origin.lon)}${origin.altitude ? ` · ${esc(origin.altitude)}` : ""} → ${esc(ORIGINS[ARRIVAL_ORIGIN_ID].name)}</p>
+          <p>${esc(origin.text || "")}</p>
+          ${link}
+        </div>
+        <div class="mini-map map-stage" data-mini-map role="img" aria-label="Map of the route from ${esc(origin.name)} to ${esc(ORIGINS[ARRIVAL_ORIGIN_ID].name)}"></div>
+      </div>
+    </section>`;
+}
+
+function ritualHTML(p) {
+  const others = PRODUCTS.filter((o) => o.id !== p.id);
+  return `
     <section class="section ritual" aria-labelledby="ritual-title">
       <div class="wrap">
-        <h2 id="ritual-title" data-split>Complete the ritual.</h2>
-        <div class="ritual-grid" data-ritual style="--n:${Math.min(4, PRODUCTS.length - 1)}">
-          ${PRODUCTS.filter((o) => o.id !== p.id).map((o) => cardHTML(o, { price: true, headingLevel: 3 })).join("")}
+        <h2 id="ritual-title" class="t-h2" data-split>Complete the ritual.</h2>
+        <div class="card-grid ritual-cards" style="--n:${Math.min(4, others.length)}">
+          ${others.map((o) => cardHTML(o, { headingLevel: 3 })).join("")}
         </div>
       </div>
     </section>`;
+}
 
-  // Title, description, JSON-LD
+/* ==========================================================================
+   Page
+   ========================================================================== */
+
+function renderProduct(p) {
+  root.innerHTML = `
+    <article class="pdp wrap">
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <ol>
+          <li><a class="link-draw" href="shop.html">Shop</a></li>
+          ${brand ? `<li><a class="link-draw" href="${brandURL(brand.id)}">${esc(brand.name)}</a></li>` : ""}
+          <li aria-current="page">${esc(p.name)}</li>
+        </ol>
+      </nav>
+      <div class="pdp-top">
+        ${galleryHTML(p)}
+        ${buyHTML(p)}
+      </div>
+    </article>
+    <div class="pdp-below" data-pdp-below></div>`;
+
+  // Title, description, JSON-LD. No aggregateRating: the ratings are samples in the preview.
   document.title = `${p.name} | Jiai Life`;
   $('meta[name="description"]')?.setAttribute("content", `${p.fullName}. ${p.benefit}. ${p.whatItDoes || ""}`.trim());
   $('meta[property="og:title"]')?.setAttribute("content", document.title);
@@ -197,8 +278,8 @@ function renderProduct(p) {
     "@type": "Product",
     name: p.fullName,
     sku: p.id,
-    description: p.whatItDoes || p.benefit,
-    image: [p.images.hero, p.images.angle, p.images.back].filter(Boolean).map((s) => new URL(s, location.href).href),
+    description: p.description || p.whatItDoes || p.benefit,
+    image: photos(p).slice(0, 3).map((g) => new URL(g.src, location.href).href),
     brand: { "@type": "Brand", name: brand?.name || "Jiai Life" },
     ...(p.size && p.size !== "TBC" ? { size: p.size } : {}),
     offers: {
@@ -211,24 +292,24 @@ function renderProduct(p) {
   });
   document.head.appendChild(ld);
 
-  // Sticky buy bar + 360° viewer label
+  // Sticky buy bar
   const bar = $("[data-buybar]");
   if (bar) {
     $("[data-buybar-name]", bar).textContent = p.name;
-    $("[data-buybar-price]", bar).textContent = priceText(p);
+    $("[data-buybar-price]", bar).textContent = p.comingSoon ? "Arrives soon" : CONFIG.showPrices ? formatPrice(p.price) : "Price at launch";
     const btn = $("[data-buybar-add]", bar);
+    btn.classList.add("btn-cart");
     if (buyable(p)) {
       btn.dataset.addToBag = p.id;
       btn.dataset.qtySource = "#pdpQty";
-      btn.dataset.addFrom = ".pdp-hero-img";
+      btn.dataset.addFrom = "[data-hero-img]";
     } else {
-      btn.dataset.notify = "";
-      $("span", btn).textContent = p.comingSoon ? "Be the first to know" : "Notify me";
+      btn.dataset.notify = p.id;
+      $("span", btn).textContent = "Notify me";
     }
     bar.hidden = false;
     document.body.classList.add("has-buybar");
   }
-  if (p.spin) $("#viewer360-title").textContent = `${p.fullName}, 360°`;
 }
 
 function renderMissing() {
@@ -236,93 +317,157 @@ function renderMissing() {
   root.innerHTML = `
     <section class="section wrap pdp-missing" aria-labelledby="missing-title">
       <h1 id="missing-title" class="t-h2">That product isn’t here. Here’s everything we make.</h1>
-      <div class="ritual-grid" data-ritual>${PRODUCTS.map((o) => cardHTML(o, { price: true })).join("")}</div>
+      <div class="card-grid">${PRODUCTS.map((o) => cardHTML(o)).join("")}</div>
     </section>`;
 }
 
+let belowReady = Promise.resolve();
 if (product) renderProduct(product); else renderMissing();
 
 /* ==========================================================================
-   Behaviour (not motion)
+   Behaviour
    ========================================================================== */
 
-// Quantity stepper
-root.addEventListener("click", (e) => {
-  const step = e.target.closest("[data-qty]");
-  if (!step) return;
-  const input = $("#pdpQty");
-  input.value = Math.min(10, Math.max(1, (parseInt(input.value, 10) || 1) + Number(step.dataset.qty)));
-});
-root.addEventListener("change", (e) => {
-  if (e.target.id !== "pdpQty") return;
-  e.target.value = Math.min(10, Math.max(1, parseInt(e.target.value, 10) || 1));
-});
+if (product) {
+  const p = product;
+  const gallery = $("[data-gallery]");
+  const track = $("[data-track]", gallery);
+  const slides = $$("[data-slide]", track);
+  const thumbsList = $("[data-thumbs]", gallery);
+  let active = 0;
+  let spin = null;
 
-// Notify me / be the first to know → the letters form in the footer
-document.addEventListener("click", (e) => {
-  if (!e.target.closest("[data-notify]")) return;
-  const input = $("#footer-email");
-  const smoother = getSmoother();
-  if (smoother) smoother.scrollTo(".site-footer", true, "top 20%"); else $(".site-footer").scrollIntoView({ behavior: "smooth" });
-  setTimeout(() => input?.focus({ preventScroll: true }), 900);
-  toast("Leave your email and we’ll write when it arrives.");
-});
+  const smooth = () => (reducedMotion() ? "auto" : "smooth");
+  const go = (i, { behavior = smooth() } = {}) => {
+    i = Math.max(0, Math.min(slides.length - 1, i));
+    track.scrollTo({ left: i * track.clientWidth, behavior });
+    setActive(i);
+  };
 
-// Origin mini map: built the first time its accordion item opens (it has no size while collapsed)
-let miniMap;
-document.addEventListener("shown.bs.collapse", (e) => {
-  if (e.target.dataset.acc === "origin" && !miniMap && product) {
-    const route = ROUTE_OF[product.originId] || { routes: [], pins: [] };
-    miniMap = createMap3d($("[data-mini-map]"), route).then((map) => {
-      map.finalState({ tilt: reducedMotion() ? 0 : 40, rotZ: reducedMotion() ? 0 : -4 });
-      return map;
+  function setActive(i) {
+    if (i === active && track.dataset.ready) return;
+    active = i;
+    track.dataset.ready = "1";
+    // Only the slide on show is in the tab order (the others sit off-stage, under the buy box).
+    slides.forEach((sl, k) => { sl.inert = k !== i; });
+    $$("[data-go]", gallery).forEach((b) => {
+      const on = Number(b.dataset.go) === i;
+      b.classList.toggle("is-active", on);
+      if (on) b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current");
     });
-  }
-  window.ScrollTrigger?.refresh();
-});
-document.addEventListener("hidden.bs.collapse", () => window.ScrollTrigger?.refresh());
-
-// Sea-buckthorn illustration for One Origin "What's inside"
-const branchHost = $("[data-branch]");
-if (branchHost) {
-  fetch("assets/illustrations/sea-buckthorn.svg").then((r) => r.text()).then((svg) => {
-    branchHost.innerHTML = svg;
-    const el = $("svg", branchHost);
-    el.removeAttribute("role"); el.removeAttribute("aria-label");
-    el.setAttribute("aria-hidden", "true"); el.setAttribute("focusable", "false");
-    branchHost.dispatchEvent(new CustomEvent("branch:ready", { bubbles: true }));
-  }).catch(() => {});
-}
-
-/* ---------- 360° viewer (tubes): drag, scroll wheel, arrow keys by 10° ---------- */
-
-const viewer = $("#viewer360");
-if (viewer && product?.spin) {
-  const canvas = $("[data-viewer-canvas]", viewer);
-  const deg = $("[data-viewer-deg]", viewer);
-  const bar = $("[data-viewer-load]", viewer);
-  canvas.setAttribute("aria-label", `${product.fullName} turning 360 degrees`);
-  let spin;
-  viewer.addEventListener("shown.bs.modal", () => {
-    if (!spin) {
-      spin = createSpin(canvas, {
-        path: product.spin.path, frames: product.spin.frames, mode: "drag",
-        onFrame: (f) => { deg.textContent = `${f * 10}°`; },
-      });
-      spin.showFirst();
-      viewer.classList.add("is-loading");
-      spin.load((p) => bar.style.setProperty("--p", p.toFixed(3))).then(() => viewer.classList.remove("is-loading"));
-      let acc = 0;
-      canvas.addEventListener("wheel", (e) => {
-        e.preventDefault();
-        acc += e.deltaY;
-        const steps = Math.trunc(acc / 40);
-        if (steps) { spin.setFrame(spin.frame + steps); acc -= steps * 40; }
-      }, { passive: false });
+    // Keep the active thumbnail in view inside the rail only (never scroll the page).
+    const t = $(`.pdp-thumb[data-go="${i}"]`, thumbsList);
+    if (t) {
+      const vertical = thumbsList.scrollHeight > thumbsList.clientHeight + 1;
+      if (vertical) {
+        const top = t.offsetTop - thumbsList.offsetTop;
+        if (top < thumbsList.scrollTop || top + t.offsetHeight > thumbsList.scrollTop + thumbsList.clientHeight) thumbsList.scrollTop = top;
+      } else {
+        const left = t.offsetLeft - thumbsList.offsetLeft;
+        if (left < thumbsList.scrollLeft || left + t.offsetWidth > thumbsList.scrollLeft + thumbsList.clientWidth) thumbsList.scrollLeft = left - 8;
+      }
     }
-    spin.redraw();
-    canvas.focus();
+    if (slides[i]?.classList.contains("pdp-slide--360")) start360();
+  }
+
+  // 360° tile: the main stage becomes a drag-to-turn canvas on the HD frames (loaded only now).
+  function start360() {
+    if (spin || !p.spin) return;
+    const slide = $(".pdp-slide--360", track);
+    const canvas = $("[data-360]", slide);
+    const hd = p.spinHD || p.spin;
+    spin = createSpin(canvas, { path: hd.path, frames: hd.frames, mode: "drag" });
+    spin.showFirst().then(() => slide.classList.add("is-drawn"));
+    spin.load();
+    let acc = 0;
+    canvas.addEventListener("wheel", (e) => {
+      if (Math.abs(e.deltaX) < Math.abs(e.deltaY) && !e.shiftKey) return; // vertical wheel scrolls the page
+      e.preventDefault();
+      acc += e.deltaX || e.deltaY;
+      const steps = Math.trunc(acc / 40);
+      if (steps) { spin.setFrame(spin.frame + steps); acc -= steps * 40; }
+    }, { passive: false });
+  }
+
+  // Thumbnails, dots
+  gallery.addEventListener("click", (e) => {
+    const t = e.target.closest("[data-go]");
+    if (t) { go(Number(t.dataset.go)); return; }
+    const r = e.target.closest("[data-rail]");
+    if (r) thumbsList.scrollBy({ top: Number(r.dataset.rail) * 88, behavior: smooth() });
+    const open = e.target.closest("[data-open]");
+    if (open) openLightbox({ items: photos(p), index: Number(open.dataset.open), from: $("img", open) });
   });
+  // Swipes (phones) and keyboard scrolling of the track keep the thumbnails/dots in step.
+  let raf = 0;
+  track.addEventListener("scroll", () => {
+    if (raf) return;
+    raf = requestAnimationFrame(() => {
+      raf = 0;
+      const i = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+      if (i !== active) setActive(i);
+    });
+  }, { passive: true });
+  addEventListener("resize", () => track.scrollTo({ left: active * track.clientWidth }));
+  setActive(0);
+  nameForTransition($("[data-hero-img]"));   // the card's image glides into this one (view transitions)
+
+  // Quantity stepper
+  let delivery = null;
+  const qty = $("#pdpQty");
+  const clampQty = () => { if (qty) qty.value = Math.min(10, Math.max(1, parseInt(qty.value, 10) || 1)); };
+  root.addEventListener("click", (e) => {
+    const step = e.target.closest("[data-qty]");
+    if (!step || !qty) return;
+    qty.value = Math.min(10, Math.max(1, (parseInt(qty.value, 10) || 1) + Number(step.dataset.qty)));
+    delivery?.refresh();
+  });
+  qty?.addEventListener("change", () => { clampQty(); delivery?.refresh(); });
+
+  // Share
+  initShare(root, { title: p.fullName, text: `${p.fullName}: ${p.benefit}.` });
+
+  // The sections below the top area render after the first paint, so the gallery and the
+  // buy box (the page's first screen and its LCP) are never held up by them.
+  belowReady = afterPaint().then(() => {
+    $("[data-pdp-below]").innerHTML = `
+      ${p.comingSoon ? "" : deliveryHTML()}
+      ${tabsHTML(p)}
+      ${originHTML(p)}
+      ${reviewsSectionHTML(p)}
+      ${ritualHTML(p)}`;
+    initBelow();
+  });
+
+  function initBelow() {
+    // Delivery Options: "free delivery" is judged on the order this piece would make.
+    const dlRoot = $(".pdp-delivery");
+    delivery = dlRoot && initDelivery(dlRoot, {
+      orderValue: () => bagSubtotal() + (bagHas(p.id) ? 0 : p.price * (parseInt(qty?.value, 10) || 1)),
+    });
+    document.addEventListener("bag:change", () => delivery?.refresh());
+
+    // Tabs, reviews
+    initTabs($("[data-tabs]"));
+    initReviews(p, $("#reviews"));
+    document.addEventListener("reviews:change", () => {
+      const r = ratingFor(p);
+      const link = $(".pdp-rating");
+      if (link && r) link.innerHTML = `${icon("star", "icon--filled")}<span>${r.average.toFixed(1)}</span><span class="pdp-rating-sep">·</span><span class="pdp-rating-n">${r.count} ratings</span>`;
+    });
+
+    // Where it's from: the mini tilted map, built when it nears the screen.
+    const mini = $("[data-mini-map]");
+    if (mini && "IntersectionObserver" in window) {
+      const io = new IntersectionObserver(([e]) => {
+        if (!e.isIntersecting) return;
+        io.disconnect();
+        createMap3d(mini, ROUTE_OF[p.originId] || { routes: [], pins: [] }).then((map) =>
+          map.finalState({ tilt: reducedMotion() ? 0 : 42, rotZ: reducedMotion() ? 0 : -4 }));
+      }, { rootMargin: "50% 0px" });
+      io.observe(mini);
+    }
+  }
 }
 
 /* ==========================================================================
@@ -330,74 +475,26 @@ if (viewer && product?.spin) {
    ========================================================================== */
 
 // Content is already rendered (the module is async); motion starts once the CDN scripts are in.
-whenScriptsReady().then(afterPaint).then(() => initMotion((c, ctx) => {
+whenScriptsReady().then(() => belowReady).then(afterPaint).then(() => initMotion((c, ctx) => {
   const cleanups = [];
-  const cards = initCards(root);
-  cleanups.push(cards.destroy);
-
-  if (!product) return () => cleanups.forEach((fn) => fn());
-
-  // Perfumes: pointer-follow tilt (max 5°) on the first image instead of a 360° turn
-  if (!product.spin && c.isDesktop) {
-    const wrap = $("[data-pdp-hero-wrap]");
-    const d = createDepth(wrap.closest(".pdp-shot"), [], { rotate: 5, rotateEl: wrap });
-    cleanups.push(d.destroy);
-  }
+  if (!product) return () => {};
 
   if (!c.reduce) {
     $$("[data-split]", root).forEach((el) => splitLines(el, { ctx }));
-
-    // Sticky gallery: pinned while the story scrolls; its images move in step so the
-    // last one arrives as the story ends.
-    if (c.isDesktop) {
-      const col = $("[data-gallery-col]");
-      const frame = $("[data-gallery-frame]");
-      const stack = $("[data-gallery]");
-      const info = $("[data-info]");
-      const distance = () => Math.max(0, info.offsetHeight - frame.offsetHeight);
-      gsap.to(stack, {
-        y: () => -Math.max(0, stack.scrollHeight - frame.offsetHeight),
-        ease: "none",
-        scrollTrigger: {
-          trigger: col, start: () => `top ${topOffset()}`, end: () => `+=${distance()}`,
-          pin: frame, pinSpacing: false, scrub: true, invalidateOnRefresh: true,
-        },
-      });
-    }
-
-    // The 10-hour line fills as it comes into view
+    // The 10-hour line fills when its tab is shown and in view
     const dayline = $("[data-dayline]");
     if (dayline) {
-      gsap.fromTo($(".dayline-bar span", dayline), { scaleX: 0 }, {
-        scaleX: 1, duration: 1.6, ease: "power2.inOut",
-        scrollTrigger: { trigger: dayline, start: "top 85%", once: true },
-      });
+      const fill = () => gsap.fromTo($(".dayline-bar span", dayline), { scaleX: 0 }, { scaleX: 1, duration: 1.4, ease: "power2.inOut" });
+      const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { io.disconnect(); fill(); } });
+      io.observe(dayline);
+      cleanups.push(() => io.disconnect());
     }
-
-    // Sea-buckthorn grows in when it is seen
-    const growBranch = () => {
-      const svg = $("[data-branch] svg");
-      if (!svg) return;
-      ctx.add(() => {
-        $$(".leaf", svg).forEach((leaf) => {
-          const m = leaf.getAttribute("d").match(/M\s*([-\d.]+)[ ,]([-\d.]+)/);
-          if (m) gsap.set(leaf, { svgOrigin: `${m[1]} ${m[2]}` });
-        });
-        gsap.timeline({ scrollTrigger: { trigger: svg, start: "top 90%", once: true } })
-          .from($$("#branch path", svg), { drawSVG: "0%", duration: 1.2, stagger: 0.15, ease: "power2.inOut" })
-          .from($$(".leaf", svg), { scale: 0, duration: 0.6, stagger: 0.015, ease: "power4.out" }, 0.4)
-          .from($$(".berry", svg), { scale: 0, transformOrigin: "50% 50%", duration: 0.45, stagger: 0.05, ease: "power4.out" }, 0.95);
-      });
-    };
-    if ($("[data-branch] svg")) growBranch();
-    else document.addEventListener("branch:ready", growBranch, { once: true });
   }
 
-  // Desktop: the buy bar appears once the buy block has scrolled past; phones: always.
+  // The sticky bar shows once the buy box has left the screen (desktop); always on phones.
   const bar = $("[data-buybar]");
   const buy = $("[data-buy]");
   if (bar && buy) {
-    // Active from the moment the buy block has left the top of the screen to the end of the page.
     const st = window.ScrollTrigger
       ? ScrollTrigger.create({
           trigger: buy, start: "bottom top", end: "max",
@@ -407,11 +504,5 @@ whenScriptsReady().then(afterPaint).then(() => initMotion((c, ctx) => {
     bar.classList.toggle("is-shown", !c.isDesktop || !!st?.isActive);
     cleanups.push(() => st?.kill());
   }
-
   return () => cleanups.forEach((fn) => fn());
 }));
-
-function topOffset() {
-  return parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--header-h")) + 24 || 100;
-}
-

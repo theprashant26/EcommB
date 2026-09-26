@@ -11,6 +11,8 @@
 
 import { initHeader } from "../core/header.js";
 import { initBag } from "../core/bag.js";
+import { initWishlist } from "../core/wishlist.js";
+import { initReveals } from "../core/reveal.js";
 import { initSearch } from "../core/search.js";
 import { initMotion, splitLines, whenScriptsReady, yieldToMain, afterPaint } from "../core/motion.js";
 import { createMap3d } from "../core/map3d.js";
@@ -22,6 +24,8 @@ import { esc, formatCoords, formatDate, $, $$ } from "../core/format.js";
 initHeader();
 initBag();
 initSearch();
+initWishlist();
+initReveals();
 
 const root = $("[data-origin-page]");
 const params = new URLSearchParams(location.search);

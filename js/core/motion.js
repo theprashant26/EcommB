@@ -95,7 +95,7 @@ export function initMotion(setup) {
 /* ---------- boot helpers (pages rendered from data) ---------- */
 
 /**
- * Resolves once the deferred CDN scripts (Bootstrap, GSAP + plugins, vanilla-tilt)
+ * Resolves once the deferred CDN scripts (Bootstrap, GSAP + plugins; Flip is the last)
  * have run. Pages whose module is loaded with `async` render their content first
  * and start motion only after this. An async module can run after parsing but
  * before the deferred scripts, so readyState is not enough: wait for the last of
@@ -104,7 +104,7 @@ export function initMotion(setup) {
 export function whenScriptsReady() {
   return new Promise((resolve) => {
     const nav = performance.getEntriesByType("navigation")[0];
-    if (window.VanillaTilt || (nav && nav.domContentLoadedEventEnd > 0)) return resolve();
+    if (window.Flip || (nav && nav.domContentLoadedEventEnd > 0)) return resolve();
     document.addEventListener("DOMContentLoaded", () => resolve(), { once: true });
   });
 }
