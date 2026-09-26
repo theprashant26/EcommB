@@ -28,7 +28,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 BRAND = ROOT / "assets" / "brand"
 SOURCE = ROOT / "index.html"
-PAGES = ["shop.html", "product.html", "brand.html", "origin.html", "about.html", "rituals.html", "wishlist.html", "combos.html"]
+PAGES = ["shop.html", "product.html", "brand.html", "origin.html", "about.html", "rituals.html", "wishlist.html", "combos.html", "faq.html"]
 NAMES = ["header", "footer", "bag", "search"]
 
 LOGO = re.compile(r"(<!-- LOGO:(inline|img) ([\w.-]+)([^>]*?)-->)(.*?)(<!-- /LOGO -->)", re.S)
@@ -75,7 +75,7 @@ def fill_logos(html):
 ENTRY = {"index.html": "js/pages/home.js", "shop.html": "js/pages/shop.js", "product.html": "js/pages/product.js",
          "brand.html": "js/pages/brand.js", "origin.html": "js/pages/origin.js", "about.html": "js/pages/about.js",
          "rituals.html": "js/pages/rituals.js", "wishlist.html": "js/pages/wishlist.js",
-         "combos.html": "js/pages/combos.js"}
+         "combos.html": "js/pages/combos.js", "faq.html": "js/pages/faq.js"}
 PRELOAD = re.compile(r"<!-- MODULEPRELOAD START.*?<!-- MODULEPRELOAD END -->", re.S)
 
 
@@ -260,7 +260,13 @@ def with_lcp(page, html):
     return PDP_IMG.sub(lambda _m: img, html)
 
 
-HERO_PRELOAD = re.compile(r'<link rel="preload" as="image" href="assets/products/larrive/larrive-campaign[^>]*>')
+HERO_PRELOAD = re.compile(r'<link rel="preload" as="image" href="[^"]*"[^>]*fetchpriority="high">')
+
+
+def hero_sources():
+    """Card A and Card B of the first slide in js/data/hero.js."""
+    js = (ROOT / "js" / "data" / "hero.js").read_text(encoding="utf-8")
+    return re.findall(r'\b[ab]: \{ src:"([^"]+)"', js)[:2]
 
 
 def with_hero_images(page, html):
@@ -268,7 +274,7 @@ def with_hero_images(page, html):
     if page != "index.html":
         return html
     variants = image_variants()
-    for src, name in [("assets/products/larrive/larrive-campaign.webp", "heroA"), ("assets/hero/hero-origin.webp", "heroB")]:
+    for src, name in zip(hero_sources(), ["heroA", "heroB"]):
         srcset = srcset_of(src, variants)
         if not srcset:
             continue

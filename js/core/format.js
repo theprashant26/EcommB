@@ -84,7 +84,6 @@ const IMAGE_SIZES = [
   [/-label-hd\.webp$/, [1284, 2000]],
   [/ritual-01-cleanser\.webp$/, [1536, 582]],
   [/ritual-02-larrive\.webp$/, [1536, 570]],
-  [/ritual-03-moisturiser\.webp$/, [1536, 494]],
   [/ritual-04-no2\.webp$/, [1536, 526]],
   [/spin-hd\/[a-z]+\/\d{3}\.webp$/, [1200, 1800]],
   [/-hero\.webp$/, [1150, 2047]],
@@ -93,7 +92,6 @@ const IMAGE_SIZES = [
   [/(cleanser|lotion)-cutout\.webp$/, [836, 2014]],
   [/larrive-cutout(-light)?\.webp$/, [557, 1143]],
   [/perfume-02-placeholder\.webp$/, [557, 1143]],
-  [/larrive-02-placeholder\.(webp|png)$/, [537, 1123]],
   [/combo-skin-duo\.webp$/, [652, 1010]],
   [/combo-origin-arrival\.webp$/, [684, 980]],
   [/combo-complete-ritual\.webp$/, [895, 980]],
@@ -106,6 +104,8 @@ const IMAGE_SIZES = [
   [/spin\/[a-z]+\/\d{3}\.webp$/, [720, 1080]],
 ];
 export function imageSize(src = "") {
+  const v = IMAGE_VARIANTS[src];                // measured by tools/make-image-sizes.py (Update 05)
+  if (v) return [v.w, v.h];
   const hit = IMAGE_SIZES.find(([re]) => re.test(src));
   return hit ? hit[1] : [900, 1200];
 }
@@ -118,10 +118,10 @@ export function imageSize(src = "") {
 const IMAGE_FOCUS = [
   [/(cleanser|lotion)-(front|angle|hero)\.webp$/, { cx: 0.392, top: 0.036, base: 0.947 }],
   [/(larrive-cutout(-light)?|perfume-02-placeholder)\.webp$/, { cx: 0.5, top: 0.037, base: 0.963 }],
-  [/larrive-02-placeholder\.webp$/, { cx: 0.5, top: 0.028, base: 0.972 }],
   [/combo-[a-z-]+\.webp$/, { cx: 0.5, top: 0.024, base: 0.968 }],
 ];
 export function imageFocus(src = "") {
+  if (IMAGE_VARIANTS[src]?.focus) return IMAGE_VARIANTS[src].focus;   // measured (Update 05)
   const hit = IMAGE_FOCUS.find(([re]) => re.test(src));
   return hit ? hit[1] : { cx: 0.5, top: 0.04, base: 0.96 };
 }

@@ -131,7 +131,7 @@ function originURL(brand) {
 const getBrandOfProduct = (id) => PRODUCTS.find((p) => p.id === id)?.brand;
 
 function productRow(p) {
-  const img = p.images.card || p.images.hero;
+  const img = p.images.tube || p.images.card || p.images.hero;
   return `
     <li>
       <a class="dd-prod" href="${productURL(p.id)}">

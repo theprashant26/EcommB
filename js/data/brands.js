@@ -7,7 +7,7 @@
 import { CONFIG } from "./config.js";
 
 export const BRANDS = [
-  { id:"one-origin", name:"One Origin", line:"Single source purity", category:"Skin",
+  { id:"one-origin", name:"One Origin", line:"Single source purity · Infinite luxury", category:"Skin",
     coords:"34.15° N, 77.58° E", originId:"leh-ladakh", status:"live",
     roomStory:"Skincare from a single, traceable source: sea-buckthorn picked by hand in Ladakh, and a code on every tube.",
     story:"Skincare built on a single, traceable ingredient source. Our sea-buckthorn comes from one place, picked by hand, and every tube carries a code that shows you where.",

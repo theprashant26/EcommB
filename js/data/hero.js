@@ -12,9 +12,9 @@
 
 export const HERO = [
   {
-    a: { src:"assets/products/larrive/larrive-campaign.webp", alt:"L’Arrivé, the dark glass bottle in evening blue light",
-         caption:"L’Arrivé · Paris 48.86° N", cta:"Shop L’Arrivé", href:"brand.html?b=larrive", pos:"50% 40%" },
-    b: { src:"assets/hero/hero-origin.webp", alt:"One Origin Face Cleanser on stone with sea-buckthorn berries, in morning sun",
+    a: { src:"assets/products/larrive/larrive-noir-campaign.webp", alt:"L’Arrivé Noir, the dark glass bottle on rock in blue light",
+         caption:"L’Arrivé Noir · Paris 48.86° N", cta:"Shop L’Arrivé", href:"brand.html?b=larrive", pos:"50% 40%" },
+    b: { src:"assets/hero/hero-origin.webp", alt:"One Origin Face Cleanser, box and tube, on a plinth in leaf light",
          caption:"One Origin · Leh 34.15° N", cta:"Shop One Origin", href:"brand.html?b=one-origin", pos:"50% 50%" },
   },
 ];

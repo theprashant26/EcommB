@@ -2397,3 +2397,29 @@ html.lb-open{ overflow:hidden; }
   .combos-grid, .bsets-grid{ --grid-cols:2; }
   .combo-items{ grid-template-columns:1fr; }
 }
+
+/* ---------- 5.18 FAQs (Update 05 §6): a Bootstrap accordion in the product tabs' language ---------- */
+
+.faq{ padding-block:clamp(40px, 8vh, 96px) var(--section); }
+.faq-inner{ max-width:960px; }
+.faq-head{ margin-bottom:clamp(32px, 5vh, 56px); }
+.faq-head h1{ margin:0 0 16px; }
+.faq-lede{ font-size:17px; color:var(--zinc); margin:0; }
+.faq-group + .faq-group{ margin-top:var(--s7); }
+.faq-group-title{ margin:0 0 8px; }
+.faq-list{ border-top:1px solid var(--line); }
+.faq-item{ border-bottom:1px solid var(--line); }
+.faq-q{ margin:0; font:inherit; }
+.faq-btn{
+  display:flex; width:100%; align-items:center; justify-content:space-between; gap:24px;
+  padding:20px 0; border:0; background:none; text-align:left; cursor:pointer;
+  font:500 16px/1.4 var(--font-body); color:var(--black);
+}
+.faq-btn .icon{ width:16px; height:16px; flex:none; color:var(--zinc); transition:transform .35s var(--ease-out3); }
+.faq-btn:not(.collapsed) .icon{ transform:rotate(45deg); color:var(--black); }
+.faq-btn:hover span{ text-decoration:underline; text-decoration-color:var(--line); text-underline-offset:.25em; }
+.faq-a p{ margin:0 0 20px; max-width:64ch; color:var(--graphite); font-size:15px; }
+.faq-care{ margin:var(--s7) 0 0; font-size:15px; }
+.collapse:not(.show){ display:none; }
+.collapsing{ height:0; overflow:hidden; transition:height .35s var(--ease-out3); }
+@media (prefers-reduced-motion:reduce){ .collapsing{ transition:none; } }

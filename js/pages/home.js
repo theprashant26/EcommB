@@ -63,7 +63,7 @@ function renderCategories() {
 
 function renderFour() {
   const grid = $("[data-four]");
-  // "Four to begin with": the first four pieces in products.js (later additions live in the shop and rooms).
+  // "The collection": the first four pieces in products.js (later additions live in the shop and rooms).
   if (grid) grid.innerHTML = PRODUCTS.slice(0, 4).map((p) => cardHTML(p)).join("");
   const coords = $("[data-four-coords]");
   if (coords) {

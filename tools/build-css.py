@@ -34,7 +34,7 @@ CSS = ROOT / "css"
 BOOTSTRAP_URL = "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
 BOOTSTRAP = CSS / "vendor" / "bootstrap-5.3.8.min.css"
 PAGES = ["index.html", "shop.html", "product.html", "brand.html", "origin.html", "about.html",
-         "rituals.html", "wishlist.html", "combos.html"]
+         "rituals.html", "wishlist.html", "combos.html", "faq.html"]
 # URLs whose first screens make up each page's critical CSS (their union).
 SAMPLES = {
     "index.html": ["index.html"],
@@ -47,6 +47,7 @@ SAMPLES = {
     "rituals.html": ["rituals.html"],
     "wishlist.html": ["wishlist.html", "wishlist.html#with-items"],
     "combos.html": ["combos.html"],
+    "faq.html": ["faq.html"],
 }
 FONT_PRELOADS = ["assets/fonts/cormorant-garamond-latin.woff2", "assets/fonts/manrope-latin.woff2"]
 STYLES = re.compile(r"<!-- STYLES START.*?<!-- STYLES END -->", re.S)

@@ -6,7 +6,7 @@ used) from the CDN. The server needs no build: the generated files are committed
 `PROMPT-B-MAISON.md`; the `UPDATE-*.md` files take precedence in order (Update 04 is the latest).
 
 Pages: `index.html` (home), `shop.html`, `product.html?id=…`, `brand.html?b=…`, `origin.html?batch=…` (the QR landing
-page), `about.html`, `rituals.html`, `wishlist.html`, `combos.html`.
+page), `about.html`, `rituals.html`, `wishlist.html`, `combos.html`, `faq.html`.
 
 ## Preview locally
 
@@ -236,6 +236,26 @@ site:
   requested twice.
 - Also: space is held for everything JS draws, so the earlier first paint never shifts the page (CLS 0).
 
+### Update 05 (the client's real content)
+
+- [x] **Logo:** the client's official files (vector traces) in `assets/brand/`; the header re-inlines the new
+  `jiai-wordmark.svg` (its red `.dot` still drops in), the footer shows `jiai-logo.svg`; new favicons and share image;
+  JSON-LD uses `jiai-logo-official.png`.
+- [x] **One Origin packaging:** the pack (box + tube) is the card image (`cardScale` .92, the 3D render on hover) and
+  the first image on the product page (its HD is the `.png`); the tube alone stands in the House rooms, the menus and
+  cart lines. New renders and 360° frames with the new label. Names, ingredients, claims, how-to steps and details
+  from the packaging; One Origin's line is "Single source purity · Infinite luxury".
+- [x] **Rituals:** row 03 is the Body Lotion (no moisturiser anywhere); row 01 lists orange peel and sea-buckthorn.
+- [x] **L’Arrivé:** the existing piece is L’Arrivé Noir (same id); the placeholder is now L’Arrivé Auren
+  (`larrive-auren`, ₹899, 150 ml, placeholders). The hero's large card, "Arrived." and the combos use Noir; both
+  bottles appear wherever the brand's products are listed. Home: "Shop the collection", "The collection."
+- [x] **Legal and contact:** "Jiai Lifestyles Private Limited" and +91 11 4039 3888 in the footer, every product's
+  details and the Organization JSON-LD.
+- [x] **FAQs:** `faq.html` (the footer's "FAQs"): the questions from `js/data/faq.js` as an accordion (Bootstrap's
+  collapse, the site's styles), the delivery figures read from `CONFIG.delivery`, FAQPage JSON-LD.
+- [x] **Images:** `tools/make-image-sizes.py` re-run for every new or replaced image; it now also records each image's
+  size and product focus (read by `imageSize()` / `imageFocus()`), and removes the copies of images no longer used.
+
 ## How it was tested
 
 Automated in Chrome and WebKit (Playwright), on a local server with gzip as on Bluehost:
@@ -292,14 +312,15 @@ What keeps it fast (keep these in place):
 
 | Item | Where |
 |---|---|
-| Lifestyle photos for the two hero cards (the product photos stand in), and a larger `hero-origin` export | `js/data/hero.js`, `assets/hero/` |
-| A lighter export of `larrive-campaign.webp` (the home hero's largest image, and its LCP) | `assets/` (same file name) |
-| Combos: which sets to sell, their names and prices (₹1,249 / ₹1,399 / ₹1,999 are placeholders); add Nº 2 or the second L’Arrivé once they are live | `js/data/products.js` (the `type:"combo"` entries) |
-| The second L’Arrivé product: name, fragrance, size, price, photos | `js/data/products.js` (`larrive-02`) |
+| Lifestyle photos for the two hero cards (the product photos stand in) | `js/data/hero.js`, `assets/hero/` |
+| Combos: which sets to sell, their names and prices (₹1,249 / ₹1,399 / ₹1,999 are placeholders); add Nº 2 or L’Arrivé Auren if wanted | `js/data/products.js` (the `type:"combo"` entries) |
+| L’Arrivé Auren: confirm it's a body spray, its size, price, notes and longevity | `js/data/products.js` (`larrive-auren`) |
+| The four how-to steps printed on the Face Cleanser box (not legible in the shared image) | `js/data/products.js` (cleanser `howTo`) |
+| Updated still lifes for Rituals rows 01 and 02 (they show the older labels) | `assets/rituals/` (same file names) |
 | The House: the client asked to "reverse to previous design"; the heading and counter are restored — confirm nothing else is meant | `index.html`, `js/pages/home.js` (`initHouse`) |
 | Prices (649 / 749 / 899 / 999 are placeholders; also used in the Product JSON-LD) | `js/data/products.js` |
 | Free-delivery threshold (₹999) and the announcement wording | `js/data/config.js` |
-| L’Arrivé size (150 ml) and its fragrance notes | `js/data/products.js` |
+| L’Arrivé Noir size (150 ml) and its fragrance notes | `js/data/products.js` |
 | Full INCI ingredient lists (both One Origin products) | `js/data/products.js` (`inside`) |
 | Nº 2: name, real image, size and price | `js/data/brands.js`, `js/data/products.js`, `assets/products/perfume-02/` |
 | Exact farm and altitude for Leh | `js/data/origins.js` (`leh-ladakh`) |
@@ -311,9 +332,9 @@ What keeps it fast (keep these in place):
 | The three product-page assurances (free delivery, COD, authentic & traceable) | `js/pages/product.js` (`buyHTML`) |
 | Real reviews: set `demoReviews: false` at launch and connect a review backend with moderation | `js/data/config.js`, `js/core/reviews.js` |
 | MRP per product (shows struck MRP and % off when above the price) | `js/data/products.js` (`mrp`) |
-| Legal name and address, customer care, shelf life (show "To be confirmed" until filled) | `js/data/products.js` (`details`) |
-| Face Moisturiser (Rituals row 03, "Notify me" until confirmed) and a Body Lotion still life for its own row | `js/data/rituals.js` |
-| Help pages: delivery, returns, contact, questions, privacy (footer links are `#`) | footer partial in `index.html`, then sync |
+| Registered address and support email; shelf life (shows "To be confirmed" until filled) | `js/data/products.js` (`details`), the JSON-LD in `index.html` |
+| FAQ answers marked `todo`: delivery times, cash on delivery, payment methods, returns policy, shelf life, care hours and email | `js/data/faq.js` |
+| Help pages: delivery, returns, contact, privacy (footer links are `#`) | footer partial in `index.html`, then sync |
 | Absolute URLs for `og:image` / `og:url` and the Organization logo, once the domain is live | `<head>` of every page |
 | Whether to show the teaser brands (Black Truth, White Lie) | `js/data/config.js` (`showComingBrands`) |
 
