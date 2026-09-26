@@ -229,7 +229,7 @@ def critical_css(site_css, selectors):
                 inner = pick(body)
                 if inner:
                     out.append(f"{prelude}{{{inner}}}")
-            elif prelude.startswith("@font-face"):
+            elif prelude.startswith(("@font-face", "@view-transition")):   # fonts; the cross-page transition opt-in
                 out.append(f"{prelude}{{{body}}}")
             elif re.match(r"@(-webkit-)?keyframes", prelude):
                 keyframes[prelude.split()[-1]] = f"{prelude}{{{body}}}"

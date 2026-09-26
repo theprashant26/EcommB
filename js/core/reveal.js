@@ -71,6 +71,8 @@ function observe(root) {
 }
 
 export function initReveals() {
+  // Below-the-fold images parked until the page's JS runs (Update 04: nothing competes with the LCP image).
+  document.querySelectorAll("img[data-defer-src]").forEach((img) => { img.src = img.dataset.deferSrc; img.removeAttribute("data-defer-src"); });
   if (io) return;
   const html = document.documentElement;
   if (reducedMotion() || !("IntersectionObserver" in window)) {
