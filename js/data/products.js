@@ -22,6 +22,7 @@ export const PRODUCTS = [
     keyIngredients:["Orange peel & sea-buckthorn"],                        // from the packaging (Update 05)
     claims:["Certified organic (OneCert)","Skin brightening & anti-pigmentation","With orange peel & sea-buckthorn"],
     whatItDoes:"A gentle daily cleanser that lifts away the day without stripping skin. Organic sea-buckthorn, prized for its vitamin C and omega-7, helps skin look brighter and more even over time.",
+    // TODO(client): a new description; this copy predates the orange peel & sea-buckthorn packaging.
     description:"A gentle daily cleanser that lifts away the day without stripping skin. Organic sea-buckthorn, prized for its vitamin C and omega-7, helps skin look brighter and more even over time. Every tube traces back to a single source in Ladakh, picked by hand.",
     inside:"Organic sea-buckthorn from a single source, in a formula made with 100% natural ingredients.", // TODO(client): full INCI list
     // TODO(client): the four steps printed on the cleanser box aren't legible in the shared image; copy them from a sharper one.
@@ -112,18 +113,19 @@ export const PRODUCTS = [
     cardScale:0.88,
     rating:null,
     description:"A new fragrance from Jiai Life. Its name, and its notes, arrive soon.",
-    details:[ ["Brand","Nº 2"], ["Status","Coming soon"] ],
+    details:[ ["Brand","Nº 2"], ["Status","Coming soon"],
+              ["Marketed by","Jiai Lifestyles Private Limited"], ["Customer care","+91 11 4039 3888"] ],
     features:[],
     images:{ hero:"assets/products/perfume-02/perfume-02-placeholder.webp", card:"assets/products/perfume-02/perfume-02-placeholder.webp" },
     gallery:[ { src:"assets/products/perfume-02/perfume-02-placeholder.webp", alt:"Nº 2, a new fragrance (placeholder bottle)" },
               { src:"assets/rituals/ritual-04-no2.webp", alt:"Nº 2 still life", fit:"cover", focus:"75% 50%" } ] },
 
-  // Update 05: L'Arrivé Auren (the second L'Arrivé, formerly the placeholder larrive-02).
+  // Update 05: L'Arrivé Auren (the second L'Arrivé).
   // TODO(client): confirm it's a body spray, the size, the price and its notes.
   { id:"larrive-auren", brand:"larrive",
     name:"L’Arrivé Auren", fullName:"L’Arrivé Auren — Premium Body Spray for Men", line:"Une touche de Paris",
     category:"fragrance", subcategory:"body-spray", ritual:"evening", tags:["new"],
-    benefit:"A new fragrance from L’Arrivé. Une touche de Paris", size:"150 ml",   // TODO(client): confirm
+    benefit:"A new fragrance from L’Arrivé. Une touche de Paris.", size:"150 ml",   // TODO(client): confirm
     price:899, mrp:null, priceNote:"placeholder",             // TODO(client): real price and MRP
     cardScale:0.9,
     rating:null,
@@ -199,7 +201,7 @@ export const comboWorth = (p) => comboItems(p).reduce((sum, it) => sum + it.prod
 export const comboSaving = (p) => Math.max(0, comboWorth(p) - p.price);
 export const comboPieces = (p) => comboItems(p).reduce((n, it) => n + it.qty, 0);
 /** A piece's name inside a set: its short name, title-cased ("Body lotion" → "Body Lotion"). */
-const setName = (x) => (x.shortName ? x.shortName.replace(/(^|\s)\S/g, (c) => c.toUpperCase()) : x.name);
+export const setName = (x) => (x.shortName ? x.shortName.replace(/(^|\s)\S/g, (c) => c.toUpperCase()) : x.name);
 /** "Face Cleanser 100 ml + Body Lotion 100 ml" */
 export const comboContents = (p) => comboItems(p).map(({ product: x, qty }) =>
   `${qty > 1 ? `${qty} × ` : ""}${setName(x)}${x.size && x.size !== "TBC" ? ` ${x.size}` : ""}`).join(" + ");
