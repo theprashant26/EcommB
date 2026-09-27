@@ -2,7 +2,8 @@
    FAQs (faq.html) — Update 05 §6.
    The questions from js/data/faq.js as an accordion (Bootstrap's collapse via
    data-bs-toggle, keyboard and aria-expanded included; the site's own styles), grouped under small
-   tracked labels, and the same list as FAQPage JSON-LD.
+   tracked labels. The FAQPage JSON-LD is in faq.html itself (written by tools/sync-partials.py
+   from the same list), so crawlers read it without running this script.
    ========================================================================== */
 
 import { initHeader } from "../core/header.js";
@@ -46,17 +47,6 @@ if (root) {
       </div>
     </section>`).join("");
   root.removeAttribute("data-pending");
-
-  const ld = document.createElement("script");
-  ld.type = "application/ld+json";
-  ld.textContent = JSON.stringify({
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: FAQ.flatMap(({ items }) => items.map(({ q, a }) => ({
-      "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a },
-    }))),
-  });
-  document.head.appendChild(ld);
 }
 
 initMotion(() => {});

@@ -8,6 +8,8 @@
 3. Write each page's <link rel="modulepreload"> list from its real import graph
    (between the MODULEPRELOAD markers in <head>), so the browser fetches every
    module at once instead of one import level per round trip.
+5. faq.html: the FAQPage JSON-LD, from js/data/faq.js (evaluated with Node, so the answers
+   carry the real CONFIG.delivery figures), between the FAQ JSON-LD markers.
 
     python tools/sync-partials.py          # fill logos + sync
     python tools/sync-partials.py --check  # exit 1 if any page has drifted
@@ -22,6 +24,8 @@ Dev tool only: not needed on the server.
 import json
 import posixpath
 import re
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -285,6 +289,37 @@ def with_hero_images(page, html):
     return html
 
 
+FAQ_LD = re.compile(r"(<!-- FAQ JSON-LD START[^>]*-->).*?(<!-- FAQ JSON-LD END -->)", re.S)
+FAQ_JS = r"""
+const { FAQ } = await import(process.argv[1]);
+const ld = { "@context": "https://schema.org", "@type": "FAQPage",
+  mainEntity: FAQ.flatMap(({ items }) => items.map(({ q, a }) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } }))) };
+process.stdout.write(JSON.stringify(ld));
+"""
+_faq_ld = None
+
+
+def faq_ld():
+    """The FAQPage JSON-LD for js/data/faq.js, as the page states it (every question, its answer)."""
+    global _faq_ld
+    if _faq_ld is None:
+        node = shutil.which("node")
+        if not node:
+            sys.exit("sync-partials.py: faq.html's JSON-LD needs Node on the PATH")
+        url = (ROOT / "js" / "data" / "faq.js").as_uri()
+        out = subprocess.run([node, "--input-type=module", "-e", FAQ_JS, url], capture_output=True, check=True)
+        _faq_ld = out.stdout.decode("utf-8").replace("</", r"<\/")   # never closes the script early
+    return _faq_ld
+
+
+def with_faq_ld(page, html):
+    if page != "faq.html":
+        return html
+    if not FAQ_LD.search(html):
+        sys.exit("faq.html is missing the FAQ JSON-LD markers")
+    return FAQ_LD.sub(lambda m: f'{m.group(1)}<script type="application/ld+json">{faq_ld()}</script>{m.group(2)}', html)
+
+
 def main():
     check = "--check" in sys.argv
     src = SOURCE.read_text(encoding="utf-8")
@@ -322,6 +357,7 @@ def main():
         new = with_preloads(page, new)
         new = with_lcp(page, new)
         new = with_shop_lcp(page, new)
+        new = with_faq_ld(page, new)
         if new != html:
             drift = True
             if check:
