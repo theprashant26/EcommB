@@ -90,7 +90,6 @@ const IMAGE_SIZES = [
   [/-angle\.webp$/, [1150, 2062]],
   [/-back\.webp$/, [857, 2006]],
   [/(cleanser|lotion)-cutout\.webp$/, [836, 2014]],
-  [/larrive-cutout(-light)?\.webp$/, [557, 1143]],
   [/perfume-02-placeholder\.webp$/, [557, 1143]],
   [/combo-skin-duo\.webp$/, [652, 1010]],
   [/combo-origin-arrival\.webp$/, [684, 980]],
@@ -100,7 +99,6 @@ const IMAGE_SIZES = [
   [/category-fragrance\.webp$/, [912, 570]],
   [/category-new\.webp$/, [842, 526]],
   [/category-skin\.webp$/, [931, 582]],
-  [/larrive-campaign\.webp$/, [1024, 1536]],
   [/spin\/[a-z]+\/\d{3}\.webp$/, [720, 1080]],
 ];
 export function imageSize(src = "") {
@@ -117,7 +115,7 @@ export function imageSize(src = "") {
  */
 const IMAGE_FOCUS = [
   [/(cleanser|lotion)-(front|angle|hero)\.webp$/, { cx: 0.392, top: 0.036, base: 0.947 }],
-  [/(larrive-cutout(-light)?|perfume-02-placeholder)\.webp$/, { cx: 0.5, top: 0.037, base: 0.963 }],
+  [/perfume-02-placeholder\.webp$/, { cx: 0.5, top: 0.037, base: 0.963 }],
   [/combo-[a-z-]+\.webp$/, { cx: 0.5, top: 0.024, base: 0.968 }],
 ];
 export function imageFocus(src = "") {
