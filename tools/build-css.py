@@ -179,6 +179,18 @@ PICK = r"""({ vh }) => {
 }"""
 
 
+# Resolves once JS has finished drawing the page: fonts loaded and no nodes added or removed for 600 ms (10 s at most).
+SETTLED = r"""() => new Promise((resolve) => {
+  let timer;
+  const done = () => { obs.disconnect(); clearTimeout(cap); resolve(); };
+  const quiet = () => { clearTimeout(timer); timer = setTimeout(() => document.fonts.ready.then(done), 600); };
+  const obs = new MutationObserver(quiet);
+  obs.observe(document.documentElement, { subtree: true, childList: true, characterData: true });   // not attributes: animations change those every frame
+  const cap = setTimeout(done, 10000);
+  quiet();
+})"""
+
+
 # Rules that hold space for content JS has not drawn yet: they matter before the first render,
 # which the extraction (run after it) never sees, so they are always inlined.
 RESERVE = re.compile(r":empty|pdp--pending|data-pending|is-skel")
@@ -282,7 +294,7 @@ def extract_critical():
                         pg.evaluate(f"localStorage.setItem('jiai-wishlist-v1', {repr(WISH_ITEMS) if items else repr('[]')})")
                         pg.reload(wait_until="networkidle")
                         pg.wait_for_function("[...document.styleSheets].some((s) => (s.href || '').includes('css/site.min.css'))")
-                        pg.wait_for_timeout(1200)
+                        pg.evaluate(SETTLED)      # not a fixed delay: a slow run must extract the same page
                         got = pg.evaluate(PICK, {"vh": h})
                         keep |= set(got or [])
                     ctx.close()
