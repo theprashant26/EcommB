@@ -76,19 +76,35 @@ MODULEPRELOAD markers) from its real import graph. Run it after adding or removi
 
 ### Build (Update 04: speed)
 
-The pages load generated, committed files. After editing a source, rebuild in this order and commit the output:
+The pages load generated, committed files. After editing a source, rebuild and commit the output.
+
+One-time setup (Node LTS 20+, Python 3.10+, Google Chrome):
 
 ```
-python tools/make-image-sizes.py   # images added or changed: right-sized copies + js/data/image-variants.js
-python tools/build-js.py           # js/ changed: minified copies in dist/js/
-python tools/sync-partials.py      # partials, preloads, the generated head/boot scripts
-python tools/build-css.py          # css/main.css or a first screen changed: css/site.min.css + critical CSS
-python tools/sync-partials.py      # once more (it also removes the stylesheet preload on the PAGE BOOT pages)
-python tools/sync-partials.py --check
+npm ci                                     # esbuild and PurgeCSS, pinned in package.json / package-lock.json
+pip install -r tools/requirements.txt      # Pillow and Playwright, pinned
 ```
 
-`build-js.py` and `build-css.py` need Node (`npx`, which fetches esbuild and PurgeCSS), `build-css.py` and the
-tests need Python Playwright with Chrome, `make-image-sizes.py` needs Pillow.
+Then, after any change:
+
+```
+npm run build
+```
+
+It runs every step in order and fails if anything is left out of sync:
+
+```
+npm run build:images   # python tools/make-image-sizes.py  (right-sized copies + js/data/image-variants.js)
+npm run build:js       # python tools/build-js.py          (minified copies in dist/js/)
+npm run build:sync     # python tools/sync-partials.py     (partials, preloads, generated head/boot scripts)
+npm run build:css      # python tools/build-css.py         (css/site.min.css + each page's critical CSS)
+npm run build:sync     # once more (it also removes the stylesheet preload on the PAGE BOOT pages)
+npm run check          # python tools/sync-partials.py --check
+```
+
+The build uses only the `node` on the PATH and the tools in `node_modules/` (no global or downloaded copies).
+It is reproducible: a clean clone plus `npm ci && npm run build` changes no committed file. `.gitattributes` keeps
+every text file LF on checkout (a CRLF checkout would change the minified output).
 
 - **CSS:** `css/site.min.css` = `css/fonts.css` (the self-hosted fonts in `assets/fonts/`, with metric-matched local
   fallbacks) + Bootstrap trimmed by PurgeCSS (`css/vendor/`) + `css/main.css`, minified. Each page inlines the CSS
@@ -255,6 +271,25 @@ site:
   collapse, the site's styles), the delivery figures read from `CONFIG.delivery`, FAQPage JSON-LD.
 - [x] **Images:** `tools/make-image-sizes.py` re-run for every new or replaced image; it now also records each image's
   size and product focus (read by `imageSize()` / `imageFocus()`), and removes the copies of images no longer used.
+
+### Polish round (before the client review)
+
+- [x] **No first-scroll jump (desktop):** ScrollSmoother is still created on the first scroll, but now picks up the
+  page where the browser has scrolled it, with almost no easing, and returns to its normal easing (1.1) once the page
+  is at rest and the triggers have settled. A single wheel step, PageDown or a scrollbar drag on Home, Shop and a
+  product page moves the content one way only (no backward movement over 2 px).
+- [x] **Reproducible build:** `package.json` (pinned esbuild and PurgeCSS, `npm run build`), `tools/requirements.txt`,
+  `.gitattributes` (LF). No dependency on a portable Node copy.
+- [x] **Layout shift 0 under throttling** (Rituals was 0.016 and Origin 0.014 on a phone): the display serif
+  (Cormorant Garamond) waits briefly for its file instead of swapping; the local fallbacks are metric-matched per
+  weight, with a separate one for uppercase labels; widths in `ch` became `em` (a `ch` changes size when the font
+  swaps); the header labels hold their final width; the Rituals text column has a fixed width on desktop; Origin's
+  typed line holds its width; a section that starts right at the fold gets its CSS inline.
+- [x] **Unused assets removed:** 52 files (14.7 MB) that no page, script, data file or build step used: the old
+  L’Arrivé bottle and campaign, earlier PNG sources of product shots, unused scenes, textures, overlays, 3D models
+  and brand-mark variants.
+- [x] **Shorter startup tasks on Home:** after the first interaction each section renders in its own frame, the price
+  formatter is built in its own task, and the Rituals rows' motion is set up one row at a time.
 
 ## How it was tested
 
