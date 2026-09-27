@@ -102,6 +102,9 @@ npm run build:sync     # once more (it also removes the stylesheet preload on th
 npm run check          # python tools/sync-partials.py --check
 ```
 
+`npm run audit:assets` (`tools/asset-audit.py`) lists files in `assets/` that nothing references; it never deletes.
+The client's own deliverables (official logo files, favicons) are in its `CLIENT_FILES` list and never reported.
+
 The build uses only the `node` on the PATH and the tools in `node_modules/` (no global or downloaded copies).
 It is reproducible: a clean clone plus `npm ci && npm run build` changes no committed file. `.gitattributes` keeps
 every text file LF on checkout (a CRLF checkout would change the minified output).
@@ -285,13 +288,35 @@ site:
   weight, with a separate one for uppercase labels; widths in `ch` became `em` (a `ch` changes size when the font
   swaps); the header labels hold their final width; the Rituals text column has a fixed width on desktop; Origin's
   typed line holds its width; a section that starts right at the fold gets its CSS inline.
-- [x] **Unused assets removed:** 52 files (14.7 MB) that no page, script, data file or build step used: the old
+- [x] **Unused assets removed:** 48 files (14.5 MB) that no page, script, data file or build step used: the old
   L’Arrivé bottle and campaign, earlier PNG sources of product shots, unused scenes, textures, overlays, 3D models
-  and brand-mark variants.
+  and brand-mark variants. (52 were removed at first; four of them were client deliverables and are restored, see
+  below.) Note on the history: the deletions are recorded in commit `a5819df` (titled "CLS 0 under throttling…"), and
+  commit `593a35e` (titled "Remove 52 asset files…") only holds the matching `format.js` edit. The history is left
+  as it is.
 - [x] **Shorter startup tasks on Home:** after the first interaction each section renders in its own frame, the price
   formatter is built in its own task, and the Rituals rows' motion is set up one row at a time.
 - Lighthouse after this round (mobile, live, median of 3): Home **99** · Shop **99** · Product (Body Lotion)
   **100** · Combos **100** · Combo product page **100**; CLS 0 on all five.
+
+### Update 05 review fixes
+
+- [x] **Client files restored:** `favicon-512.png`, `jiai-logo-white.svg`, `jiai-wordmark-white.svg` and
+  `jiai-logo-official.webp` (Update 05 §0) are back, and the asset audit (`tools/asset-audit.py`) now keeps a list of
+  client deliverables it never reports as unused.
+- [x] **Details rows on every product:** "Marketed by: Jiai Lifestyles Private Limited" and "Customer care:
+  +91 11 4039 3888" on every product, Nº 2 and the combos included. "Certification: OneCert certified organic" only on
+  One Origin pieces; a combo names its certified pieces ("OneCert certified organic (Face Cleanser, Body Lotion)");
+  never on L’Arrivé or Nº 2.
+- [x] **Sample ratings labelled:** while `CONFIG.demoReviews` is on, every grid that shows a sample rating (Home,
+  Shop including its build-written first cards, brand pages, Wishlist, Rituals, search results, the product page's
+  rows) has one quiet line under it, "Sample ratings shown for preview", and the product page shows it right under
+  the rating badge. Grids without ratings (Combos, a filter showing only combos) have none. With the flag off: no
+  ratings and no note. Shop's note is written into `shop.html` by the build, so it follows the flag too.
+- [x] **FAQPage JSON-LD in the HTML:** `tools/sync-partials.py` writes it into `faq.html` from `js/data/faq.js`
+  (between the FAQ JSON-LD markers); the page script no longer adds a second one.
+- [x] **Cleanups:** Auren's benefit ends with a full stop; the old `larrive-02` comment is gone; the Face Cleanser
+  description is marked `TODO(client)` (the copy predates the orange peel & sea-buckthorn packaging).
 
 ## How it was tested
 
@@ -353,6 +378,7 @@ What keeps it fast (keep these in place):
 | Combos: which sets to sell, their names and prices (₹1,249 / ₹1,399 / ₹1,999 are placeholders); add Nº 2 or L’Arrivé Auren if wanted | `js/data/products.js` (the `type:"combo"` entries) |
 | L’Arrivé Auren: confirm it's a body spray, its size, price, notes and longevity | `js/data/products.js` (`larrive-auren`) |
 | The four how-to steps printed on the Face Cleanser box (not legible in the shared image) | `js/data/products.js` (cleanser `howTo`) |
+| Face Cleanser description: the current copy predates the orange peel & sea-buckthorn packaging | `js/data/products.js` (cleanser `description`) |
 | Updated still lifes for Rituals rows 01 and 02 (they show the older labels) | `assets/rituals/` (same file names) |
 | The House: the client asked to "reverse to previous design"; the heading and counter are restored — confirm nothing else is meant | `index.html`, `js/pages/home.js` (`initHouse`) |
 | Prices (649 / 749 / 899 / 999 are placeholders; also used in the Product JSON-LD) | `js/data/products.js` |
@@ -383,3 +409,4 @@ What keeps it fast (keep these in place):
 | Accounts | Toast "Accounts open at launch." | `js/core/header.js` (`[data-account]`) |
 | Newsletter | Validates, shows the success toast | `js/core/header.js` (`initNewsletterForms`) |
 | "Notify me" (hidden prices, Nº 2) | Sends the visitor to the newsletter field | `js/pages/product.js` |
+| Sample ratings and reviews | Shown with "Sample ratings shown for preview" / "Sample reviews shown for preview" | Set `demoReviews:false` in `js/data/config.js`, then `npm run build` (Shop's first cards and its note are written into `shop.html` by the build) |
