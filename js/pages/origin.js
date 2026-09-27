@@ -318,13 +318,19 @@ function typeIn(el, delay) {
   const duration = 700;
   let start = 0;
   const frame = (now) => {
-    start ||= now;
+    if (!start) {
+      start = now;
+      // The shuffling letters are wider or narrower than the code: hold its box at the final width meanwhile,
+      // so the route line and the other end never move (no layout shift).
+      el.style.width = `${el.getBoundingClientRect().width}px`;
+    }
     const p = Math.min(1, (now - start) / duration);
     const settled = Math.floor(p * final.length);
     el.textContent = p < 1
       ? final.split("").map((ch, i) => (i < settled ? ch : letters[Math.floor(Math.random() * letters.length)])).join("")
       : final;
     if (p < 1) requestAnimationFrame(frame);
+    else el.style.width = "";
   };
   setTimeout(() => requestAnimationFrame(frame), delay * 1000);
 }

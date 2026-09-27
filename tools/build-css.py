@@ -160,7 +160,7 @@ PICK = r"""({ vh }) => {
     let ok;
     const parent = el.parentElement;
     if (!shown(el)) ok = !parent || (shown(parent) && onFirstScreen(parent));
-    else ok = el.getBoundingClientRect().top < vh;   // includes things parked above the screen (the skip link)
+    else ok = el.getBoundingClientRect().top < vh + 2;   // parked above the screen too (the skip link); +2: a section starting right at the fold edge
     seen.set(el, ok);
     return ok;
   };

@@ -5,19 +5,33 @@
    from fallback to web font moves nothing on the page.
    ========================================================================== */
 
-@font-face{ font-family:"Cormorant Garamond"; font-style:italic; font-weight:400 500; font-display:swap;
+@font-face{ font-family:"Cormorant Garamond"; font-style:italic; font-weight:400 500; font-display:block;
   src:url("../assets/fonts/cormorant-garamond-italic-latin-ext.woff2") format("woff2"); unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
-@font-face{ font-family:"Cormorant Garamond"; font-style:italic; font-weight:400 500; font-display:swap;
+@font-face{ font-family:"Cormorant Garamond"; font-style:italic; font-weight:400 500; font-display:block;
   src:url("../assets/fonts/cormorant-garamond-italic-latin.woff2") format("woff2"); unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
-@font-face{ font-family:"Cormorant Garamond"; font-style:normal; font-weight:400 600; font-display:swap;
+@font-face{ font-family:"Cormorant Garamond"; font-style:normal; font-weight:400 600; font-display:block;
   src:url("../assets/fonts/cormorant-garamond-latin-ext.woff2") format("woff2"); unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
-@font-face{ font-family:"Cormorant Garamond"; font-style:normal; font-weight:400 600; font-display:swap;
+@font-face{ font-family:"Cormorant Garamond"; font-style:normal; font-weight:400 600; font-display:block;
   src:url("../assets/fonts/cormorant-garamond-latin.woff2") format("woff2"); unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 @font-face{ font-family:"Manrope"; font-style:normal; font-weight:300 700; font-display:swap;
   src:url("../assets/fonts/manrope-latin-ext.woff2") format("woff2"); unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
 @font-face{ font-family:"Manrope"; font-style:normal; font-weight:300 700; font-display:swap;
   src:url("../assets/fonts/manrope-latin.woff2") format("woff2"); unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
-@font-face{ font-family:"Cormorant Garamond Fallback"; src:local("Georgia"), local("Times New Roman");
-  size-adjust:88.79%; ascent-override:104.06%; descent-override:32.32%; line-gap-override:0%; }
-@font-face{ font-family:"Manrope Fallback"; src:local("Arial"), local("Helvetica");
-  size-adjust:104.28%; ascent-override:102.23%; descent-override:28.77%; line-gap-override:0%; }
+/* Cormorant (headings) is font-display:block: a heading waits for its face (preloaded, 37 KB) instead of painting in
+   Georgia and re-wrapping when Cormorant arrives (a different line break is a layout shift, and no fallback can match
+   every heading's width). Manrope (body text) swaps, so text is always readable at once.
+   The fallbacks: one local face per weight group (Georgia / Arial, their bold and italic), each scaled so text in it
+   takes the web font's line box exactly and, on average, its width; uppercase labels have their own, set a little
+   narrow so a label that fits on one line in Manrope never wraps in the fallback. */
+@font-face{ font-family:"Cormorant Garamond Fallback"; font-style:normal; font-weight:300 500; src:local("Georgia");
+  size-adjust:88.09%; ascent-override:104.44%; descent-override:32.92%; line-gap-override:0%; }
+@font-face{ font-family:"Cormorant Garamond Fallback"; font-style:normal; font-weight:600 700; src:local("Georgia Bold"), local("Georgia-Bold");
+  size-adjust:75.87%; ascent-override:121.26%; descent-override:38.22%; line-gap-override:0%; }
+@font-face{ font-family:"Cormorant Garamond Fallback"; font-style:italic; font-weight:300 700; src:local("Georgia Italic"), local("Georgia-Italic");
+  size-adjust:78.14%; ascent-override:117.74%; descent-override:37.11%; line-gap-override:0%; }
+@font-face{ font-family:"Manrope Fallback"; font-style:normal; font-weight:200 500; src:local("Arial"), local("ArialMT");
+  size-adjust:102.12%; ascent-override:104.78%; descent-override:29.38%; line-gap-override:0%; }
+@font-face{ font-family:"Manrope Fallback"; font-style:normal; font-weight:600 800; src:local("Arial Bold"), local("Arial-BoldMT");
+  size-adjust:99.37%; ascent-override:107.68%; descent-override:30.19%; line-gap-override:0%; }
+@font-face{ font-family:"Manrope Caps Fallback"; font-style:normal; font-weight:200 800; src:local("Arial Bold"), local("Arial-BoldMT");
+  size-adjust:90.00%; ascent-override:118.89%; descent-override:33.33%; line-gap-override:0%; }
