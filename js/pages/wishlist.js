@@ -10,7 +10,7 @@ import { initWishlist, wishlistIds, setWished } from "../core/wishlist.js";
 import { initReveals } from "../core/reveal.js";
 import { initSearch } from "../core/search.js";
 import { initMotion } from "../core/motion.js";
-import { cardHTML } from "../core/cards.js";
+import { cardHTML, syncSampleNote } from "../core/cards.js";
 import { getProduct } from "../data/products.js";
 import { $, cssReady } from "../core/format.js";
 import { toast } from "../core/toast.js";
@@ -32,6 +32,7 @@ function render() {
   const items = wishlistIds().map(getProduct).filter(Boolean);
   grid.innerHTML = items.map((p) => cardHTML(p, { headingLevel: 2, remove: true })).join("");
   grid.removeAttribute("data-pending");
+  syncSampleNote(grid, items);
   grid.hidden = !items.length;
   empty.hidden = !!items.length;
   tools.hidden = !items.length;

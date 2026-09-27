@@ -312,21 +312,27 @@ def extract_critical():
 # ---------- shop: the first cards in the HTML ----------
 
 SHOP_FIRST = re.compile(r"<!-- SHOP FIRST START -->.*?<!-- SHOP FIRST END -->", re.S)
+SHOP_NOTE = re.compile(r"<!-- SHOP NOTE START -->.*?<!-- SHOP NOTE END -->", re.S)
 FIRST_CARDS = r"""async (dist) => {
   // Exactly what js/pages/shop.js draws first (same modules, same arguments), for the first row on a phone.
   const url = (p) => new URL(`${dist}js/${p}`, location.href).href;
-  const { cardHTML } = await import(url("core/cards.js"));
+  const { cardHTML, sampleNoteHTML } = await import(url("core/cards.js"));
   const { PRODUCTS, isCombo } = await import(url("data/products.js"));
   const { visibleBrands } = await import(url("data/brands.js"));
   const ids = new Set(visibleBrands().map((b) => b.id));
   const products = PRODUCTS.filter((p) => ids.has(p.brand) || isCombo(p));
-  return products.slice(0, 2).map((p, i) => cardHTML(p, { headingLevel: 2, eager: i === 0 ? "high" : i < 4 })
-    .replace('class="cp"', `class="cp" data-flip-id="p-${p.id}"`)).join("");
+  const first = products.slice(0, 2);
+  return {
+    cards: first.map((p, i) => cardHTML(p, { headingLevel: 2, eager: i === 0 ? "high" : i < 4 })
+      .replace('class="cp"', `class="cp" data-flip-id="p-${p.id}"`)).join(""),
+    note: sampleNoteHTML(first),   // "Sample ratings shown for preview" under the grid, only while CONFIG.demoReviews is on
+  };
 }"""
 
 
 def write_shop_first():
-    """shop.html: its first two cards in the HTML (the page's LCP image paints before any script runs)."""
+    """shop.html: its first two cards in the HTML (the page's LCP image paints before any script runs), and the
+    sample-ratings note under the grid when those cards show sample ratings (follows CONFIG.demoReviews)."""
     from playwright.sync_api import sync_playwright
     httpd, base = serve()
     try:
@@ -335,14 +341,15 @@ def write_shop_first():
             pg = browser.new_page()
             pg.goto(base + "shop.html", wait_until="networkidle")
             dist = "dist/" if (ROOT / "dist" / "js").exists() else ""
-            cards = pg.evaluate(FIRST_CARDS, dist)
+            first = pg.evaluate(FIRST_CARDS, dist)
             browser.close()
     finally:
         httpd.shutdown()
-    cards = cards.replace('<img class="cp-img" ', '<img class="cp-img" data-lcp ', 1)   # PAGE BOOT waits for this image
+    cards = first["cards"].replace('<img class="cp-img" ', '<img class="cp-img" data-lcp ', 1)   # PAGE BOOT waits for this image
     path = ROOT / "shop.html"
     html = path.read_text(encoding="utf-8")
     new = SHOP_FIRST.sub(lambda _m: f"<!-- SHOP FIRST START -->{cards}<!-- SHOP FIRST END -->", html)
+    new = SHOP_NOTE.sub(lambda _m: f"<!-- SHOP NOTE START -->{first['note']}<!-- SHOP NOTE END -->", new)
     if new != html:
         path.write_text(new, encoding="utf-8", newline="\n")
         print("shop.html: first cards")

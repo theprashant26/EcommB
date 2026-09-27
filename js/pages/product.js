@@ -19,7 +19,7 @@ import { initSearch } from "../core/search.js";
 import { initMotion, splitLines, whenScriptsReady, afterPaint } from "../core/motion.js";
 import { createSpin, frameURL } from "../core/spin.js";
 import { createMap3d } from "../core/map3d.js";
-import { cardHTML, comboPriceHTML } from "../core/cards.js";
+import { cardHTML, comboPriceHTML, sampleNoteHTML, showsSampleRating, SAMPLE_NOTE } from "../core/cards.js";
 import { openLightbox } from "../core/lightbox.js";
 import { reviewsSectionHTML, initReviews, ratingFor } from "../core/reviews.js";
 import { deliveryHTML, initDelivery } from "../core/delivery.js";
@@ -27,7 +27,7 @@ import { shareButtonHTML, initShare } from "../core/share.js";
 import { initTabs } from "../core/tabs.js";
 import { nameForTransition } from "../core/transitions.js";
 import { CONFIG } from "../data/config.js";
-import { PRODUCTS, COMBOS, getProduct, productURL, sizesOf, isCombo, comboItems, comboWorth, combosWith, brandNameOf } from "../data/products.js";
+import { PRODUCTS, COMBOS, getProduct, productURL, sizesOf, isCombo, comboItems, comboWorth, combosWith, brandNameOf, setName } from "../data/products.js";
 import { getBrand, brandURL } from "../data/brands.js";
 import { ORIGINS, BATCHES, ARRIVAL_ORIGIN_ID } from "../data/origins.js";
 import { esc, formatPrice, formatCoords, imageSize, icon, priceHTML, reducedMotion, srcsetAttr, thumbOf, SIZES, $, $$, cssReady } from "../core/format.js";
@@ -182,6 +182,7 @@ function buyHTML(p) {
           ${p.comingSoon ? "" : `<span data-rating-slot>${ratingBadgeHTML(p)}</span>`}
           ${shareButtonHTML()}
         </div>
+        ${showsSampleRating(p) ? `<p class="sample-ratings-note pdp-sample-note">${SAMPLE_NOTE}</p>` : ""}
       </div>
       <h1 class="t-h3 pdp-name">${esc(p.fullName)}</h1>
       <div class="pdp-priceblock">${price}</div>
@@ -246,12 +247,17 @@ function comboDetails(p) {
   const pieces = piecesOf(p);
   const detail = (x, key) => clean((x.details || []).find(([k]) => k === key)?.[1] || "");
   const made = unique(pieces.map((x) => detail(x, "Country of origin")).filter((v) => v !== "To be confirmed"));
+  const certified = pieces.filter((x) => detail(x, "Certification"));
   return [
     ["Contents", comboItems(p).map(({ product: x, qty }) => `${qty > 1 ? `${qty} × ` : ""}${x.fullName}`).join(" + ")],
     ["Pieces", String(comboItems(p).reduce((n, it) => n + it.qty, 0))],
     ["Sizes", pieces.map((x) => (x.size && x.size !== "TBC" ? x.size : "To be confirmed")).join(" + ")],
     ["Brands", unique(pieces.map((x) => brandNameOf(x, getBrand))).join(", ")],
     ["Country of origin", made.join(" / ") || "To be confirmed"],
+    // Update 05 §5: the certification only for the pieces that carry it (One Origin), named
+    ...(certified.length ? [["Certification", `${detail(certified[0], "Certification")} (${certified.map(setName).join(", ")})`]] : []),
+    ["Marketed by", unique(pieces.map((x) => detail(x, "Marketed by"))).join(" / ")],
+    ["Customer care", unique(pieces.map((x) => detail(x, "Customer care"))).join(" / ")],
   ];
 }
 
@@ -372,6 +378,7 @@ function ritualHTML(p) {
         <div class="card-grid ritual-cards" style="--n:${Math.min(4, others.length)}">
           ${others.map((o) => cardHTML(o, { headingLevel: 3 })).join("")}
         </div>
+        ${sampleNoteHTML(others)}
       </div>
     </section>`;
 }
@@ -457,6 +464,7 @@ function renderMissing() {
     <section class="section wrap pdp-missing" aria-labelledby="missing-title">
       <h1 id="missing-title" class="t-h2">That product isn’t here. Here’s everything we make.</h1>
       <div class="card-grid">${PRODUCTS.map((o) => cardHTML(o)).join("")}</div>
+      ${sampleNoteHTML(PRODUCTS)}
     </section>`;
 }
 

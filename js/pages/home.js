@@ -12,7 +12,7 @@ import { initSearch } from "../core/search.js";
 import { initMotion, splitLines, appear, getSmoother } from "../core/motion.js";
 import { createSpin, frameURL } from "../core/spin.js";
 import { createMap3d } from "../core/map3d.js";
-import { cardHTML } from "../core/cards.js";
+import { cardHTML, syncSampleNote } from "../core/cards.js";
 import { ritualRowsHTML, ritualRowsSteps } from "../core/ritual-rows.js";
 import { openLightbox } from "../core/lightbox.js";
 import { plinthSetHTML } from "../core/plinth.js";
@@ -64,7 +64,9 @@ function renderCategories() {
 function renderFour() {
   const grid = $("[data-four]");
   // "The collection": the first four pieces in products.js (later additions live in the shop and rooms).
-  if (grid) grid.innerHTML = PRODUCTS.slice(0, 4).map((p) => cardHTML(p)).join("");
+  const four = PRODUCTS.slice(0, 4);
+  if (grid) grid.innerHTML = four.map((p) => cardHTML(p)).join("");
+  syncSampleNote(grid, four);
   const coords = $("[data-four-coords]");
   if (coords) {
     const lat = (o) => `${Math.abs(o.lat).toFixed(2)}° ${o.lat >= 0 ? "N" : "S"}`;

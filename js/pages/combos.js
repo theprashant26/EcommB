@@ -10,7 +10,7 @@ import { initWishlist } from "../core/wishlist.js";
 import { initReveals } from "../core/reveal.js";
 import { initSearch } from "../core/search.js";
 import { initMotion, splitLines } from "../core/motion.js";
-import { cardHTML } from "../core/cards.js";
+import { cardHTML, syncSampleNote } from "../core/cards.js";
 import { COMBOS } from "../data/products.js";
 import { $, $$, cssReady } from "../core/format.js";
 
@@ -24,6 +24,7 @@ initReveals();
 
 const grid = $("[data-combos-grid]");
 if (grid) grid.innerHTML = COMBOS.map((p) => cardHTML(p, { headingLevel: 3 })).join("");
+syncSampleNote(grid, COMBOS);
 const count = $("[data-combos-count]");
 if (count) count.textContent = `${COMBOS.length} ${COMBOS.length === 1 ? "combo" : "combos"}`;
 

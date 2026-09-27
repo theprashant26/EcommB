@@ -12,7 +12,7 @@ import { initWishlist } from "../core/wishlist.js";
 import { initReveals } from "../core/reveal.js";
 import { initSearch } from "../core/search.js";
 import { initMotion, splitLines } from "../core/motion.js";
-import { cardHTML } from "../core/cards.js";
+import { cardHTML, syncSampleNote } from "../core/cards.js";
 import { ritualRowsHTML, ritualRowsMotion } from "../core/ritual-rows.js";
 import { PRODUCTS, RITUAL_LABELS } from "../data/products.js";
 import { esc, icon, $, $$, cssReady } from "../core/format.js";
@@ -48,6 +48,7 @@ if (day) {
         ${cardHTML(p, { headingLevel: 3 })}
       </li>`;
   }).join("");
+  syncSampleNote(day, Object.keys(RITUAL_LABELS).map((key) => PRODUCTS.find((x) => x.ritual === key)).filter(Boolean));
 }
 
 initMotion((c, ctx) => {

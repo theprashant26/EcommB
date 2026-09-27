@@ -7,7 +7,7 @@
 import { PRODUCTS, productURL, productsByBrand, isCombo, comboItems, brandNameOf } from "../data/products.js";
 import { visibleBrands, getBrand, brandURL } from "../data/brands.js";
 import { esc, normalize, $, $$, hasGSAP, reducedMotion, thumbOf } from "./format.js";
-import { cardHTML } from "./cards.js";
+import { cardHTML, sampleNoteHTML } from "./cards.js";
 import { pauseScroll } from "./motion.js";
 
 let overlay, input, results, status, lastFocus;
@@ -71,7 +71,7 @@ function render() {
   const products = found.filter((e) => e.kind === "product");
   const brands = found.filter((e) => e.kind === "brand");
   results.innerHTML = (products.length
-    ? `<li class="search-cards"><div class="card-grid search-grid">${products.map((e) => cardHTML(e.product, { headingLevel: 3 })).join("")}</div></li>`
+    ? `<li class="search-cards"><div class="card-grid search-grid">${products.map((e) => cardHTML(e.product, { headingLevel: 3 })).join("")}</div>${sampleNoteHTML(products.map((e) => e.product))}</li>`
     : "") + brands.map((e) => `
     <li class="search-result">
       <a href="${e.url}">

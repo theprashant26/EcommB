@@ -15,7 +15,7 @@ import { initWishlist } from "../core/wishlist.js";
 import { initReveals } from "../core/reveal.js";
 import { initSearch } from "../core/search.js";
 import { initMotion, splitLines, whenScriptsReady, afterPaint, loadPlugin, whenIdle } from "../core/motion.js";
-import { cardHTML } from "../core/cards.js";
+import { cardHTML, syncSampleNote } from "../core/cards.js";
 import { plinthSetHTML } from "../core/plinth.js";
 import { PRODUCTS, CATEGORY_LABELS, RITUAL_LABELS, isCombo } from "../data/products.js";
 import { visibleBrands, brandURL } from "../data/brands.js";
@@ -118,6 +118,7 @@ grid.innerHTML =
     .replace('class="cp"', `class="cp" data-flip-id="p-${esc(p.id)}"`)).join("") +
   brands.map(brandTileHTML).join("");
 grid.removeAttribute("data-pending");
+syncSampleNote(grid, products);
 
 const cardEl = new Map($$(".cp", grid).map((el) => [el.dataset.id, el]));
 const blockEl = new Map($$("[data-brand-block]", grid).map((el) => [el.dataset.brandBlock, el]));
@@ -196,6 +197,7 @@ function apply({ animate = true } = {}) {
   status.textContent = `${count} ${count === 1 ? "piece" : "pieces"}`;
   empty.hidden = count > 0;
   grid.hidden = count === 0;
+  syncSampleNote(grid, products.filter((p) => shown.has(cardEl.get(p.id))));   // the note follows the cards on show
 
   const done = () => { grid.style.minHeight = ""; relayout = null; window.ScrollTrigger?.refresh(); };
   if (!motion) { done(); return; }

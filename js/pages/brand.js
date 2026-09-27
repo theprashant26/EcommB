@@ -16,7 +16,7 @@ import { initReveals } from "../core/reveal.js";
 import { initSearch } from "../core/search.js";
 import { initMotion, splitLines, appear, whenScriptsReady, afterPaint } from "../core/motion.js";
 import { createMap3d } from "../core/map3d.js";
-import { cardHTML } from "../core/cards.js";
+import { cardHTML, sampleNoteHTML } from "../core/cards.js";
 import { plinthSetHTML } from "../core/plinth.js";
 import { productsByBrand, combosForBrand } from "../data/products.js";
 import { getBrand, visibleBrands, brandURL } from "../data/brands.js";
@@ -91,6 +91,7 @@ function renderLive(b) {
         <div class="card-grid bpieces-grid">
           ${pieces.map((p) => cardHTML(p, { headingLevel: 3 })).join("")}
         </div>
+        ${sampleNoteHTML(pieces)}
       </div>
     </section>
     ${setsHTML(b)}
@@ -122,6 +123,7 @@ function setsHTML(b) {
           <p>${esc(b.name)}, paired with the rest of the house and priced as a set. <a class="link-cta" href="combos.html">All combos</a></p>
         </div>
         <div class="card-grid bsets-grid">${sets.map((p) => cardHTML(p, { headingLevel: 3 })).join("")}</div>
+        ${sampleNoteHTML(sets)}
       </div>
     </section>`;
 }

@@ -29,6 +29,23 @@ export function comboPriceHTML(p, { long = false } = {}) {
     : "");
 }
 
+/* Sample ratings are labelled (Update 05 review): one note per grid, under it, whenever a card in it shows a
+   sample rating (CONFIG.demoReviews on, a rating in products.js, not coming soon). With demoReviews off: nothing. */
+export const SAMPLE_NOTE = "Sample ratings shown for preview";
+export const showsSampleRating = (p) => !!(CONFIG.demoReviews && p.rating && !p.comingSoon);
+export const sampleNoteHTML = (products) =>
+  products.some(showsSampleRating) ? `<p class="sample-ratings-note" data-sample-note>${SAMPLE_NOTE}</p>` : "";
+
+/** For a grid drawn into existing markup: the note right after it, added, kept or removed to match its cards. */
+export function syncSampleNote(grid, products) {
+  if (!grid) return;
+  const next = grid.nextElementSibling;
+  const has = next?.hasAttribute("data-sample-note");
+  const want = products.some(showsSampleRating);
+  if (want && !has) grid.insertAdjacentHTML("afterend", sampleNoteHTML(products));
+  if (!want && has) next.remove();
+}
+
 /** Card markup. opts.headingLevel for the name; opts.eager for cards in the first screen ("high" for the page's LCP image, true for the rest of that screen);
  *  opts.remove adds a "Remove" control (wishlist page). Combos carry a "Combo · 2 pieces" badge. */
 export function cardHTML(p, { headingLevel = 3, eager = false, remove = false } = {}) {
