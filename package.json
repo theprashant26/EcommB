@@ -8,7 +8,8 @@
     "build:js": "python tools/build-js.py",
     "build:sync": "python tools/sync-partials.py",
     "build:css": "python tools/build-css.py",
-    "check": "python tools/sync-partials.py --check"
+    "check": "python tools/sync-partials.py --check",
+    "audit:assets": "python tools/asset-audit.py"
   },
   "devDependencies": {
     "esbuild": "0.25.12",
