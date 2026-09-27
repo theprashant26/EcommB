@@ -290,6 +290,8 @@ site:
   and brand-mark variants.
 - [x] **Shorter startup tasks on Home:** after the first interaction each section renders in its own frame, the price
   formatter is built in its own task, and the Rituals rows' motion is set up one row at a time.
+- Lighthouse after this round (mobile, live, median of 3): Home **99** · Shop **99** · Product (Body Lotion)
+  **100** · Combos **100** · Combo product page **100**; CLS 0 on all five.
 
 ## How it was tested
 
