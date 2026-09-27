@@ -72,10 +72,15 @@ async function inlineIcons(root) {
 }
 
 /** Scroll motion for the rows (inside a motion context). */
-export function ritualRowsMotion(root, { ctx, reduce }) {
+export function ritualRowsMotion(root, opts) {
+  ritualRowsSteps(root, opts).forEach((step) => step());
+}
+
+/** The same, as one step per row plus one for the icons, so a page can run them in separate tasks. */
+export function ritualRowsSteps(root, { ctx, reduce }) {
   const rows = $$("[data-rrow]", root);
-  if (!rows.length || reduce || !window.ScrollTrigger) return;
-  rows.forEach((row) => {
+  if (!rows.length || reduce || !window.ScrollTrigger) return [];
+  const rowStep = (row) => () => {
     const img = $("[data-rrow-img]", row);
     gsap.fromTo(img, { yPercent: -3 }, {
       yPercent: 3, ease: "none",
@@ -86,9 +91,9 @@ export function ritualRowsMotion(root, { ctx, reduce }) {
       opacity: 0, y: 12, duration: 0.8, stagger: 0.08, ease: "power3.out",
       scrollTrigger: { trigger: $(".rrow-text", row), start: "top 80%", once: true },
     });
-  });
+  };
   // Icons draw in once their strokes are inline.
-  Promise.all([inlineIcons(root), loadPlugin("DrawSVGPlugin").catch(() => null)]).then(([svgs]) => {
+  const icons = () => Promise.all([inlineIcons(root), loadPlugin("DrawSVGPlugin").catch(() => null)]).then(([svgs]) => {
     if (!window.DrawSVGPlugin || !svgs.length) return;
     const add = (fn) => (ctx ? ctx.add(fn) : fn());
     add(() => rows.forEach((row) => {
@@ -98,4 +103,5 @@ export function ritualRowsMotion(root, { ctx, reduce }) {
       shapes.forEach((set, i) => tl.from(set, { drawSVG: "0%", duration: 1, ease: "power2.inOut" }, i * 0.1));
     }));
   });
+  return [...rows.map(rowStep), icons];
 }

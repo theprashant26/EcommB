@@ -13,7 +13,7 @@ import { initMotion, splitLines, appear, getSmoother } from "../core/motion.js";
 import { createSpin, frameURL } from "../core/spin.js";
 import { createMap3d } from "../core/map3d.js";
 import { cardHTML } from "../core/cards.js";
-import { ritualRowsHTML, ritualRowsMotion } from "../core/ritual-rows.js";
+import { ritualRowsHTML, ritualRowsSteps } from "../core/ritual-rows.js";
 import { openLightbox } from "../core/lightbox.js";
 import { plinthSetHTML } from "../core/plinth.js";
 import { PRODUCTS, productsByBrand } from "../data/products.js";
@@ -21,7 +21,7 @@ import { HERO } from "../data/hero.js";
 import { CATEGORIES } from "../data/categories.js";
 import { visibleBrands, brandURL } from "../data/brands.js";
 import { ORIGINS } from "../data/origins.js";
-import { esc, formatCoords, finePointer, hasGSAP, icon, imageSize, reducedMotion, $, $$, cssReady, srcsetAttr, SIZES } from "../core/format.js";
+import { esc, formatCoords, formatPrice, finePointer, hasGSAP, icon, imageSize, reducedMotion, $, $$, cssReady, srcsetAttr, SIZES } from "../core/format.js";
 
 await cssReady();   // Update 04: the full stylesheet arrives without blocking; render once it applies
 
@@ -251,15 +251,21 @@ const yieldToMain = () => (globalThis.scheduler?.yield
   ? scheduler.yield()
   : new Promise((resolve) => setTimeout(resolve, 0)));
 
+// Lets a frame render (style and layout of what was just added) before the next piece of work,
+// so each section is laid out in its own task instead of all at once in the next one that measures.
+const yieldToFrame = () => new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
+
 playHeroIntro();
 initHeroSlides();
 boot();
 
 async function boot() {
   await firstIntent();
-  for (const render of [renderCategories, renderFour, renderTurn, renderRooms, renderRush, renderRituals]) {
+  // The first price formatted builds the Intl formatter (tens of ms on a phone): its own task.
+  const warmFormat = () => formatPrice(0);
+  for (const render of [warmFormat, renderCategories, renderFour, renderTurn, renderRooms, renderRush, renderRituals]) {
     render();
-    await yieldToMain();
+    await yieldToFrame();
   }
   initHouse();
   initMotion(setupMotion);
@@ -295,7 +301,7 @@ function setupMotion(c, ctx) {
     () => turnMotion(c, cleanups),
     () => mapMotion(c, cleanups, later),
     () => arrivedMotion(c, cleanups),
-    () => ritualRowsMotion($("[data-ritual-rows]"), { ctx, reduce: c.reduce }),
+    ...ritualRowsSteps($("[data-ritual-rows]"), { ctx, reduce: c.reduce }),   // a task per row
     () => {
       if (c.reduce) return;
       $$("[data-split]").forEach((el) => splitLines(el, { ctx }));
