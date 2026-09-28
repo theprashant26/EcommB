@@ -26,7 +26,7 @@ CLIENT_FILES = {
 }
 
 TEXT = {".html", ".js", ".css", ".py", ".json", ".webmanifest", ".xml", ".txt", ".svg"}
-SKIP = {"node_modules", ".git", "reference", "assets"}
+SKIP = {"node_modules", ".git", "reference", "assets", "compare"}   # compare/: frozen earlier versions (tools/make-compare.py)
 
 
 def corpus():
