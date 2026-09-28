@@ -2,7 +2,7 @@
    The WhatsApp button (its markup is the "whatsapp" partial, its link comes from CONFIG.social).
    It is fixed bottom right, clear of the buy bar and the footer's last row by layout. Controls that
    scroll or stay pinned under it (the House arrows, the turn controls, the sample-ratings notes, the
-   map's Replay, a toast) make it step aside: as one comes near, it hides at once, and it fades back in
+   map's Replay, a toast, and the hero's pieces on a phone's first screen) make it step aside: as one comes near, it hides at once, and it fades back in
    once they have moved on. Checked once at start (a restored scroll or #link), then on scroll, resize and toasts.
    ========================================================================== */
 
@@ -11,6 +11,8 @@ const PROTECT = [
   ".sample-ratings-note", ".map-replay:not([hidden])", ".toast-msg",
 ].join(", ");   // (the buy bar is cleared by the button's position)
 const GAP = 40;         // px of look-ahead: a control moving fast (ScrollSmoother) is caught before it arrives
+// The hero's pieces: their visible product, not the transparent margins of the cut-out, and no look-ahead.
+const PIECES = ".hl";
 const SETTLE = 1400;    // ms of checks after the last scroll (ScrollSmoother eases the page after the wheel)
 
 export function initWaFloat() {
@@ -23,6 +25,12 @@ export function initWaFloat() {
     for (const el of document.querySelectorAll(PROTECT)) {
       const b = el.getBoundingClientRect();
       if (b.width && b.height && b.right > a.left - GAP && b.left < a.right + GAP && b.bottom > a.top - GAP && b.top < a.bottom + GAP) return true;
+    }
+    for (const el of document.querySelectorAll(PIECES)) {
+      const b = el.getBoundingClientRect(), cs = getComputedStyle(el);
+      const l = b.left + b.width * parseFloat(cs.getPropertyValue("--l")), r = b.right - b.width * parseFloat(cs.getPropertyValue("--r"));
+      const bottom = b.bottom - b.height * (1 - parseFloat(cs.getPropertyValue("--base")));
+      if (r > a.left && l < a.right && bottom > a.top && b.top < a.bottom) return true;
     }
     return false;
   };

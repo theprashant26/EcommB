@@ -8,5 +8,5 @@ export const CATEGORIES = [
   { title:"Fragrance",    text:"Long-lasting scents with a touch of Paris, made for every day.",        href:"shop.html?category=fragrance", image:"assets/categories/category-fragrance.webp", pos:"65% 50%" },
   { title:"Combos", text:"Better together: rituals paired and priced as sets.", href:"combos.html",
     image:"assets/categories/category-combos.webp", pos:"50% 60%" },
-  { title:"New Arrivals", text:"The newest pieces in the house, including Nº 2.",                      href:"shop.html?sort=new",           image:"assets/categories/category-new.webp",       pos:"60% 50%" },
+  { title:"New Arrivals", text:"The newest pieces in the house, including L’Arrivé Auren.",           href:"shop.html?sort=new",           image:"assets/products/larrive/larrive-auren-campaign.webp", pos:"50% 70%", posPhone:"50% 88%" },
 ];

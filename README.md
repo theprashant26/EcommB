@@ -49,9 +49,9 @@ Everything that lists brands or products renders from `js/data/`:
 | `js/data/config.js` | Currency, `showPrices`, `pricePlacement` ("top" / "after-story"), `showComingBrands`, free-delivery threshold, `delivery` (fee, COD), `demoReviews` (**set to `false` at launch**), announcement line |
 | `js/data/brands.js` | Brands: name, tagline, category, coordinates, story, status (`live` / `coming` / `teaser`), room colours |
 | `js/data/products.js` | Products: copy, claims, how-to, notes, prices / `mrp`, combos (`type:"combo"`, `items`, a set price; the struck worth is computed from the items), `category`, `ritual`, `tags`, `cardScale`, `rating`, `details`, `features`, `gallery`, images, spin frames |
-| `js/data/hero.js` | The two home hero cards: image, alt text, caption chip, link, focal point |
-| `js/data/categories.js` | "Categories You Might Like" tiles (home): title, line, image, link |
-| `js/data/rituals.js` | "Rituals, written down" rows (home and `rituals.html`): image, number, title, copy, three features, link. More rows continue the alternating pattern |
+| `js/data/hero.js` | The home hero's line-up: the pieces standing in a row (product, cut-out, height); the build writes it into `index.html` |
+| `js/data/categories.js` | "Categories You Might Like" tiles (home): title, line, image, link, focal point (`pos`, and `posPhone` for phones) |
+| `js/data/rituals.js` | "Rituals, written down" rows (home and `rituals.html`): image (`portrait:true` for a tall picture), number, title, copy, three features, link. More rows continue the alternating pattern |
 | `js/data/origins.js` | Origins (coordinates, altitude, airport codes) and `BATCHES` (one per code printed on the tubes) |
 
 **Adding a brand or a product** is one object in `brands.js` / `products.js`. The mega menu, mobile menu, footer,
@@ -366,6 +366,25 @@ site:
 - Lighthouse, live Home: mobile **97** (median of 3: 97 / 99 / 96; the previous round 97 / 99 / 98), CLS 0;
   desktop (`--preset=desktop`) **100**, LCP 0.4 s, CLS 0.
 
+### Client requests after Update 06
+
+- [x] **Comparison link:** the site as it was before Update 03 (the hero with the products on plinths, the golden Nº 2,
+  "Shop the four") is published next to the current one at `compare/before-update-03/`
+  (https://theprashant26.github.io/EcommB/compare/before-update-03/). A small note at the bottom says it's an earlier
+  version (× hides it) and links back; it's kept out of search engines, and its cart and wishlist are separate from the
+  current site's. `tools/make-compare.py <commit> <name> "<label>"` makes more of these; the build never touches them.
+- [x] **The golden Nº 2 bottle is gone, the blue L’Arrivé Auren takes its place:** Nº 2 is off the site (product,
+  brand, menus, footer, the House's third room, the placeholder bottle and its still life). Rituals row 04 is now
+  L’Arrivé Auren with the client's Auren picture (a portrait: it stands at full height on the row's product side and
+  fades into the white; `portrait:true`); the row keeps its copy until the client sends Auren's (TODO). The New
+  Arrivals tile shows the Auren picture too.
+- [x] **Hero: the product row again, without the plinths:** the two photo cards are replaced by the earlier hero's idea:
+  Face Cleanser, Body Lotion, L’Arrivé Noir and L’Arrivé Auren standing side by side on one floor line, each on a soft
+  shadow, beside the title. Each piece links to its product. They rise into place on load (movement only) and follow
+  the pointer slightly on desktop. The row is written into `index.html` from `js/data/hero.js` by the build (sizes,
+  `srcset`, the preload of its first piece, which PAGE BOOT waits for). On a phone's first screen the WhatsApp
+  button steps aside while it would cover a piece.
+
 ## How it was tested
 
 Automated in Chrome and WebKit (Playwright), on a local server with gzip as on Bluehost:
@@ -422,8 +441,7 @@ What keeps it fast (keep these in place):
 
 | Item | Where |
 |---|---|
-| Lifestyle photos for the two hero cards (the product photos stand in) | `js/data/hero.js`, `assets/hero/` |
-| Combos: which sets to sell, their names and prices (₹1,249 / ₹1,399 / ₹1,999 are placeholders); add Nº 2 or L’Arrivé Auren if wanted | `js/data/products.js` (the `type:"combo"` entries) |
+| Combos: which sets to sell, their names and prices (₹1,249 / ₹1,399 / ₹1,999 are placeholders); add L’Arrivé Auren if wanted | `js/data/products.js` (the `type:"combo"` entries) |
 | L’Arrivé Auren: confirm it's a body spray, its size, price, notes and longevity | `js/data/products.js` (`larrive-auren`) |
 | The four how-to steps printed on the Face Cleanser box (not legible in the shared image) | `js/data/products.js` (cleanser `howTo`) |
 | Face Cleanser description: the current copy predates the orange peel & sea-buckthorn packaging | `js/data/products.js` (cleanser `description`) |
@@ -433,7 +451,7 @@ What keeps it fast (keep these in place):
 | Free-delivery threshold (₹999) and the announcement wording | `js/data/config.js` |
 | L’Arrivé Noir size (150 ml) and its fragrance notes | `js/data/products.js` |
 | Full INCI ingredient lists (both One Origin products) | `js/data/products.js` (`inside`) |
-| Nº 2: name, real image, size and price | `js/data/brands.js`, `js/data/products.js`, `assets/products/perfume-02/` |
+| Rituals row 04 (L’Arrivé Auren): a wide still life like rows 01–03 (its portrait picture stands in), and the row's copy for Auren | `js/data/rituals.js`, `assets/rituals/` |
 | Exact farm and altitude for Leh | `js/data/origins.js` (`leh-ladakh`) |
 | What is sourced from Paris / the perfumery | `js/data/origins.js` (`paris`) |
 | Batch data: field, harvest team names, grown season, harvest / pressed / formulated / filled dates, lab report link | `js/data/origins.js` (`BATCHES`) |
@@ -458,5 +476,5 @@ What keeps it fast (keep these in place):
 | Checkout | Toast "Checkout connects at launch." | `js/core/bag.js` (`[data-checkout]`) |
 | Accounts | Toast "Accounts open at launch." | `js/core/header.js` (`[data-account]`) |
 | Newsletter | Validates, shows the success toast | `js/core/header.js` (`initNewsletterForms`) |
-| "Notify me" (hidden prices, Nº 2) | Sends the visitor to the newsletter field | `js/pages/product.js` |
+| "Notify me" (hidden prices, coming-soon pieces) | Sends the visitor to the newsletter field | `js/pages/product.js` |
 | Sample ratings and reviews | Shown with "Sample ratings shown for preview" / "Sample reviews shown for preview" | Set `demoReviews:false` in `js/data/config.js`, then `npm run build` (Shop's first cards and its note are written into `shop.html` by the build) |

@@ -6,7 +6,7 @@ pages read to build srcset.
     python tools/make-image-sizes.py
 
 Naming (quality 80):
-  name-480.webp  … a width variant (480 px wide): hero, category tiles, Rituals rows
+  name-480.webp  … a width variant (480 px wide): campaign images, category tiles, Rituals rows
   name-600.webp  … a height variant (600 px tall): product cards, product-page images, combos
   name-thumb.webp  180 px tall: thumbnail rails, "What's in the combo", menus, cart, search
 Variants are only made smaller than their source (never upscaled). Re-run after adding images
@@ -21,8 +21,7 @@ from PIL import Image
 ROOT = Path(__file__).resolve().parent.parent
 Q = 80
 WIDTHS = {
-    r"larrive/larrive-[\w-]*campaign\.webp$": [480, 768], # hero Card A (the home LCP) and the L'Arrivé galleries; 1024 is the source
-    r"hero/hero-origin\.webp$": [320, 480],                 # hero Card B (the source is 600 wide)
+    r"larrive/larrive-[\w-]*campaign\.webp$": [480, 768], # the L'Arrivé galleries, Rituals row 04, New Arrivals; 1024 is the source
     r"categories/category-[\w-]+\.webp$": [768],            # 1200 / ~900 are the sources
     r"rituals/ritual-[\w-]+\.webp$": [768, 1200],           # 1536 is the source
 }
@@ -35,7 +34,6 @@ def data_images():
     found = set()
     for f in ["products.js", "rituals.js", "categories.js", "hero.js"]:
         found |= set(re.findall(r'"(assets/[\w/.-]+\.webp)"', (ROOT / "js" / "data" / f).read_text(encoding="utf-8")))
-    found.add("assets/hero/hero-origin.webp")
     return sorted(s for s in found if (ROOT / s).exists() and "/spin" not in s and "-hd." not in s)
 
 
@@ -54,7 +52,8 @@ def variants_for(src):
         # so a soft baked-in shadow doesn't pull the centre sideways.
         bb = im.getchannel("A").point(lambda a: 255 if a > 200 else 0).getbbox()
         if bb:
-            out["focus"] = {"cx": round((bb[0] + bb[2]) / 2 / w, 3), "top": round(bb[1] / h, 3), "base": round(bb[3] / h, 3)}
+            out["focus"] = {"cx": round((bb[0] + bb[2]) / 2 / w, 3), "top": round(bb[1] / h, 3), "base": round(bb[3] / h, 3),
+                            "left": round(bb[0] / w, 3), "right": round(bb[2] / w, 3)}   # left/right: the hero line-up
     widths = next((v for k, v in WIDTHS.items() if re.search(k, src)), None)
     if widths:                                                   # width variants
         for vw in widths:

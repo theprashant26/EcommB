@@ -270,16 +270,48 @@ def with_lcp(page, html):
 HERO_PRELOAD = re.compile(r'<link rel="preload" as="image" href="[^"]*"[^>]*fetchpriority="high">')
 
 
-def hero_sources():
-    """Card A and Card B of the first slide in js/data/hero.js."""
-    js = (ROOT / "js" / "data" / "hero.js").read_text(encoding="utf-8")
-    return re.findall(r'\b[ab]: \{ src:"([^"]+)"', js)[:2]
+LINEUP = re.compile(r"(<!-- HERO LINEUP START[^>]*-->).*?(<!-- HERO LINEUP END -->)", re.S)
+LINEUP_JS = r"""
+const { HERO_LINEUP } = await import(process.argv[1]);
+const P = await import(process.argv[2]);
+process.stdout.write(JSON.stringify(HERO_LINEUP.map((x) => { const p = P.getProduct(x.productId);
+  if (!p) throw new Error("hero.js: no product " + x.productId);
+  return { ...x, name: p.fullName, url: P.productURL(p.id) }; })));
+"""
+
+
+def hero_lineup():
+    """js/data/hero.js with each piece's name and link (from products.js)."""
+    return json.loads(node_eval(LINEUP_JS, (ROOT / "js" / "data" / "hero.js").as_uri(), (ROOT / "js" / "data" / "products.js").as_uri()))
 
 
 def with_hero_images(page, html):
-    """index.html: the two hero cards (the page's LCP is Card A) and Card A's preload get their srcset/sizes."""
+    """index.html: the hero line-up from js/data/hero.js (sizes, base lines, srcset), and the preload of its LCP image."""
     if page != "index.html":
         return html
+    variants = image_variants()
+    sizes = sizes_of("lineup")
+    items, lcp = [], None
+    for i, x in enumerate(hero_lineup()):
+        v = variants[x["src"]]
+        f = v.get("focus") or {"top": 0, "base": 1, "left": 0, "right": 1}
+        srcset = srcset_of(x["src"], variants)
+        # --w the file's width/height, --h its height share, --base its base line, --l/--r its transparent sides, --i the order
+        style = (f'--w:{v["w"] / v["h"]:.4f};--h:{x["h"]};--base:{f["base"]};--l:{f["left"]};--r:{1 - f["right"]:.3f};--i:{i}')
+        extra = ' data-lcp fetchpriority="high"' if x.get("lcp") else ""
+        items.append(f'<a class="hl" href="{x["url"]}" aria-label="{x["name"]}" style="{style}">'
+                     f'<img class="hl-img"{extra} src="{x["src"]}"' + (f' srcset="{srcset}" sizes="{sizes}"' if srcset else "")
+                     + f' alt="" width="{v["w"]}" height="{v["h"]}" decoding="async"></a>')
+        if x.get("lcp"):
+            lcp = (x["src"], srcset)
+    block = "\n            " + "\n            ".join(items) + "\n          "
+    if not LINEUP.search(html):
+        sys.exit("index.html is missing the HERO LINEUP markers")
+    html = LINEUP.sub(lambda m: m.group(1) + block + m.group(2), html)
+    if lcp:
+        src, srcset = lcp
+        html = HERO_PRELOAD.sub(lambda _m: f'<link rel="preload" as="image" href="{src}" imagesrcset="{srcset}" imagesizes="{sizes}" fetchpriority="high">', html)
+    return html
     variants = image_variants()
     for src, name in zip(hero_sources(), ["heroA", "heroB"]):
         srcset = srcset_of(src, variants)

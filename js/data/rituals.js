@@ -20,7 +20,10 @@ export const RITUALS = [
     title:"Nourishment You Can Feel",
     text:"A lightweight organic body lotion that deeply hydrates and nourishes. Made with jojoba oil, aloe vera and sea-buckthorn for soft, smooth skin every day.",
     features:[ {icon:"droplet",label:"Deep Hydration"}, {icon:"leaf",label:"Certified Organic"}, {icon:"sparkles",label:"Soft & Smooth Skin"} ] },
-  { n:"04", productId:"perfume-no2", image:"assets/rituals/ritual-04-no2.webp",
+  // L'Arrivé Auren (the client's blue bottle replaces the Nº 2 still life). Its picture is a portrait: `portrait`
+  // shows it at the band's full height on the product side, fading into the white.
+  // TODO(client): a wide Auren still life like rows 01–03, and this row's copy for Auren.
+  { n:"04", productId:"larrive-auren", image:"assets/products/larrive/larrive-auren-campaign.webp", portrait:true,
     title:"A Touch of Elegance, Everyday",
     text:"A signature fragrance that blends sophistication with freshness. Crafted for those who appreciate the finer things in life.",
     features:[ {icon:"flower-2",label:"Unique Fragrance"}, {icon:"gem",label:"Elevates Your Mood"}, {icon:"clock",label:"Perfect For Daily Wear"} ] },

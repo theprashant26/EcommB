@@ -17,7 +17,6 @@ import { ritualRowsHTML, ritualRowsSteps } from "../core/ritual-rows.js";
 import { openLightbox } from "../core/lightbox.js";
 import { plinthSetHTML } from "../core/plinth.js";
 import { PRODUCTS, productsByBrand } from "../data/products.js";
-import { HERO } from "../data/hero.js";
 import { CATEGORIES } from "../data/categories.js";
 import { visibleBrands, brandURL } from "../data/brands.js";
 import { ORIGINS } from "../data/origins.js";
@@ -47,7 +46,7 @@ function renderCategories() {
   const tile = (c, i) => `
     <a class="cat${tall(i) ? " is-tall" : ""}" href="${esc(c.href)}" data-reveal>
       <span class="cat-media" data-reveal-inner>
-        <img class="cat-img" src="${esc(c.image)}"${srcsetAttr(c.image, SIZES.tile)} alt="" width="${imageSize(c.image)[0]}" height="${imageSize(c.image)[1]}" loading="lazy" decoding="async" style="object-position:${esc(c.pos || "50% 50%")}">
+        <img class="cat-img" src="${esc(c.image)}"${srcsetAttr(c.image, SIZES.tile)} alt="" width="${imageSize(c.image)[0]}" height="${imageSize(c.image)[1]}" loading="lazy" decoding="async" style="--pos:${esc(c.pos || "50% 50%")}${c.posPhone ? `;--pos-phone:${esc(c.posPhone)}` : ""}">
       </span>
       <span class="cat-scrim" aria-hidden="true"></span>
       <span class="cat-body">
@@ -188,11 +187,11 @@ function renderRush() {
 
 
 /* ==========================================================================
-   Hero collage (Update 03 §2). The load reveal and the idle motion are CSS
-   (compositor, under html.motion-ok), so the first screen costs the main
-   thread nothing. Here: the logo's red-dot drop, pausing the idle loops when
-   the hero is off-screen or the tab is hidden, slides from js/data/hero.js,
-   and (with motion, desktop) the pointer depth in heroMotion().
+   Hero line-up (js/data/hero.js, written into index.html by the build). The
+   load reveal is CSS (compositor, under html.motion-ok), so the first screen
+   costs the main thread nothing. Here: the logo's red-dot drop, pausing the
+   hero's animations when it is off-screen or the tab is hidden, and (with
+   motion, desktop) the pointer depth in heroMotion().
    ========================================================================== */
 
 function playHeroIntro() {
@@ -203,39 +202,6 @@ function playHeroIntro() {
   const pause = (on) => hero.classList.toggle("is-paused", on);
   if ("IntersectionObserver" in window) new IntersectionObserver(([e]) => pause(!e.isIntersecting)).observe(hero);
   document.addEventListener("visibilitychange", () => pause(document.hidden));
-}
-
-/** More than one slide in HERO: both cards cross-fade to the next pair every 7 seconds (paused on hover). */
-function initHeroSlides() {
-  const collage = $("[data-collage]");
-  if (!collage || HERO.length < 2 || reducedMotion()) return;
-  const cards = { a: $('[data-hcard="a"]', collage), b: $('[data-hcard="b"]', collage) };
-  ["a", "b"].forEach((k) => {
-    const frame = $(".hcard-frame", cards[k]);
-    HERO.slice(1).forEach((slide) => {
-      const d = slide[k];
-      const [w, h] = imageSize(d.src);
-      frame.insertAdjacentHTML("beforeend", `<img class="hcard-img" src="${esc(d.src)}"${srcsetAttr(d.src, k === "a" ? SIZES.heroA : SIZES.heroB)} alt="" width="${w}" height="${h}" loading="lazy" decoding="async" style="object-position:${esc(d.pos || "50% 50%")}">`);
-    });
-  });
-  let i = 0, hover = false;
-  collage.addEventListener("pointerenter", () => { hover = true; });
-  collage.addEventListener("pointerleave", () => { hover = false; });
-  setInterval(() => {
-    if (hover || document.hidden || $("[data-hero]").classList.contains("is-paused")) return;
-    i = (i + 1) % HERO.length;
-    ["a", "b"].forEach((k) => {
-      const card = cards[k], d = HERO[i][k];
-      $$(".hcard-img", card).forEach((img, n) => {
-        if (n === 0) img.style.opacity = i === 0 ? "" : "0";
-        else img.classList.toggle("is-on", n === i);
-        img.alt = n === i ? d.alt : "";
-      });
-      card.href = d.href;
-      $(".hcard-cap", card).textContent = d.caption;
-      $(".hcard-cta", card).textContent = `${d.cta} →`;
-    });
-  }, 7000);
 }
 
 /* ==========================================================================
@@ -258,7 +224,6 @@ const yieldToMain = () => (globalThis.scheduler?.yield
 const yieldToFrame = () => new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
 
 playHeroIntro();
-initHeroSlides();
 boot();
 
 async function boot() {
@@ -322,30 +287,27 @@ function setupMotion(c, ctx) {
   return () => { alive = false; cleanups.forEach((fn) => fn()); };
 }
 
-/* ---------- hero collage: pointer depth (desktop, motion) ---------- */
+/* ---------- hero line-up: pointer depth (desktop, motion) ---------- */
 
 function heroMotion(c, cleanups) {
-  const collage = $("[data-collage]");
-  if (!collage || c.reduce || !c.isDesktop || !finePointer()) return;
+  const lineup = $("[data-lineup]");
+  if (!lineup || c.reduce || !c.isDesktop || !finePointer()) return;
   const hero = $("[data-hero]");
-  const [a, b] = $$("[data-hcard-move]", collage);
-  // Card A moves 8px and Card B 18px opposite the pointer; the collage tilts up to ±3°.
-  gsap.set(collage, { transformPerspective: 1200 });
-  const to = (el, prop, d = 0.8) => gsap.quickTo(el, prop, { duration: d, ease: "power3.out" });
-  const q = { ax: to(a, "x"), ay: to(a, "y"), bx: to(b, "x"), by: to(b, "y"), rx: to(collage, "rotationX", 1), ry: to(collage, "rotationY", 1) };
+  const pieces = $$(".hl", lineup);
+  // Each piece moves opposite the pointer, the nearer ones (right) a little more: 6px to 15px.
+  const q = pieces.map((el, i) => ({ d: 6 + i * 3, x: gsap.quickTo(el, "x", { duration: 0.8, ease: "power3.out" }), y: gsap.quickTo(el, "y", { duration: 0.8, ease: "power3.out" }) }));
   const move = (e) => {
     const r = hero.getBoundingClientRect();
     const nx = ((e.clientX - r.left) / r.width - 0.5) * 2, ny = ((e.clientY - r.top) / r.height - 0.5) * 2;
-    q.ax(-nx * 8); q.ay(-ny * 8); q.bx(-nx * 18); q.by(-ny * 18);
-    q.ry(nx * 3); q.rx(-ny * 3);
+    q.forEach((p) => { p.x(-nx * p.d); p.y(-ny * p.d * 0.5); });
   };
-  const leave = () => Object.values(q).forEach((fn) => fn(0));
+  const leave = () => q.forEach((p) => { p.x(0); p.y(0); });
   hero.addEventListener("pointermove", move);
   hero.addEventListener("pointerleave", leave);
   cleanups.push(() => {
     hero.removeEventListener("pointermove", move);
     hero.removeEventListener("pointerleave", leave);
-    gsap.set([a, b, collage], { clearProps: "transform" });
+    gsap.set(pieces, { clearProps: "transform" });
   });
 }
 

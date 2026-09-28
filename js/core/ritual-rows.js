@@ -5,7 +5,8 @@
    The row image fills a band (cover, anchored to the product side) whose
    height follows the image's own proportions (max 760px), so the text over
    the image's soft empty side never reaches the product. Below 1360px the
-   image band comes first and the text follows on white.
+   image band comes first and the text follows on white. A `portrait` picture (no wide still life yet)
+   keeps the rows' band and stands at its full height on the product side, fading into the white.
    Motion: the image drifts (±3%), the text reveals line by line, the feature
    icons draw in (DrawSVG, stagger 0.1).
    ========================================================================== */
@@ -28,7 +29,7 @@ export function ritualRowsHTML({ headingLevel = 3 } = {}) {
         : `<a class="row-link" href="${esc(r.cta.href)}">${esc(r.cta.label)} ${icon("arrow-right")}</a>`)
       : p ? `<a class="row-link" href="${productURL(p.id)}" aria-label="Explore now: ${esc(p.fullName)}">Explore now ${icon("arrow-right")}</a>` : "";
     return `
-      <article class="rrow rrow--${side}" data-rrow style="--ar:${w} / ${hgt}">
+      <article class="rrow rrow--${side}${r.portrait ? " rrow--portrait" : ""}" data-rrow style="${r.portrait ? `--ar:1536 / 560; --iar:${w} / ${hgt}` : `--ar:${w} / ${hgt}`}">
         <div class="rrow-media">
           <img class="rrow-img" src="${esc(r.image)}"${srcsetAttr(r.image, SIZES.wide)} alt="" width="${w}" height="${hgt}" loading="lazy" decoding="async" data-rrow-img>
         </div>

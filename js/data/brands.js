@@ -17,7 +17,6 @@ export const BRANDS = [
     roomStory:"French for “arrived”. A fragrance made to last from the morning commute to the evening.",
     story:"French for “arrived”. Fragrance for the one who no longer needs to try, made to last from the morning commute to the evening.",
     room:{ bg:"var(--la-mist)", accent:"var(--la-black)" } },
-  { id:"jiai-no2", name:"Nº 2", line:"Name to be revealed", category:"Fragrance", status:"coming" }, // TODO(client)
   { id:"black-truth", name:"Black Truth", category:"Coming to the house", status:"teaser" },   // only if CONFIG.showComingBrands
   { id:"white-lie",  name:"White Lie",  category:"Coming to the house", status:"teaser" },
 ];

@@ -25,18 +25,6 @@ export const IMAGE_VARIANTS = {
   ],
   "thumb": "assets/categories/category-fragrance-thumb.webp"
  },
- "assets/categories/category-new.webp": {
-  "w": 842,
-  "h": 526,
-  "set": [
-   [
-    "assets/categories/category-new-768.webp",
-    768,
-    480
-   ]
-  ],
-  "thumb": "assets/categories/category-new-thumb.webp"
- },
  "assets/categories/category-skin.webp": {
   "w": 1200,
   "h": 760,
@@ -68,7 +56,9 @@ export const IMAGE_VARIANTS = {
   "focus": {
    "cx": 0.501,
    "top": 0.024,
-   "base": 0.943
+   "base": 0.943,
+   "left": 0.034,
+   "right": 0.967
   }
  },
  "assets/combos/combo-origin-arrival.webp": {
@@ -90,7 +80,9 @@ export const IMAGE_VARIANTS = {
   "focus": {
    "cx": 0.503,
    "top": 0.024,
-   "base": 0.943
+   "base": 0.943,
+   "left": 0.049,
+   "right": 0.956
   }
  },
  "assets/combos/combo-skin-duo.webp": {
@@ -112,25 +104,10 @@ export const IMAGE_VARIANTS = {
   "focus": {
    "cx": 0.503,
    "top": 0.024,
-   "base": 0.945
+   "base": 0.945,
+   "left": 0.052,
+   "right": 0.954
   }
- },
- "assets/hero/hero-origin.webp": {
-  "w": 600,
-  "h": 800,
-  "set": [
-   [
-    "assets/hero/hero-origin-320.webp",
-    320,
-    427
-   ],
-   [
-    "assets/hero/hero-origin-480.webp",
-    480,
-    640
-   ]
-  ],
-  "thumb": "assets/hero/hero-origin-thumb.webp"
  },
  "assets/products/cleanser/cleanser-angle.webp": {
   "w": 1150,
@@ -151,7 +128,9 @@ export const IMAGE_VARIANTS = {
   "focus": {
    "cx": 0.4,
    "top": 0.036,
-   "base": 0.949
+   "base": 0.949,
+   "left": 0.163,
+   "right": 0.637
   }
  },
  "assets/products/cleanser/cleanser-back.webp": {
@@ -173,7 +152,9 @@ export const IMAGE_VARIANTS = {
   "focus": {
    "cx": 0.501,
    "top": 0.037,
-   "base": 0.963
+   "base": 0.963,
+   "left": 0.086,
+   "right": 0.915
   }
  },
  "assets/products/cleanser/cleanser-box.webp": {
@@ -190,7 +171,9 @@ export const IMAGE_VARIANTS = {
   "focus": {
    "cx": 0.5,
    "top": 0.038,
-   "base": 0.962
+   "base": 0.962,
+   "left": 0.082,
+   "right": 0.918
   }
  },
  "assets/products/cleanser/cleanser-cutout.webp": {
@@ -212,7 +195,9 @@ export const IMAGE_VARIANTS = {
   "focus": {
    "cx": 0.5,
    "top": 0.037,
-   "base": 0.964
+   "base": 0.964,
+   "left": 0.089,
+   "right": 0.911
   }
  },
  "assets/products/cleanser/cleanser-front.webp": {
@@ -234,7 +219,9 @@ export const IMAGE_VARIANTS = {
   "focus": {
    "cx": 0.392,
    "top": 0.036,
-   "base": 0.947
+   "base": 0.947,
+   "left": 0.084,
+   "right": 0.7
   }
  },
  "assets/products/cleanser/cleanser-hero.webp": {
@@ -256,7 +243,9 @@ export const IMAGE_VARIANTS = {
   "focus": {
    "cx": 0.396,
    "top": 0.036,
-   "base": 0.948
+   "base": 0.948,
+   "left": 0.097,
+   "right": 0.695
   }
  },
  "assets/products/cleanser/cleanser-label.webp": {
@@ -278,7 +267,9 @@ export const IMAGE_VARIANTS = {
   "focus": {
    "cx": 0.5,
    "top": 0.0,
-   "base": 1.0
+   "base": 1.0,
+   "left": 0.031,
+   "right": 0.969
   }
  },
  "assets/products/cleanser/cleanser-pack.webp": {
@@ -295,7 +286,9 @@ export const IMAGE_VARIANTS = {
   "focus": {
    "cx": 0.5,
    "top": 0.037,
-   "base": 0.963
+   "base": 0.963,
+   "left": 0.055,
+   "right": 0.945
   }
  },
  "assets/products/cleanser/cleanser-tube.webp": {
@@ -312,7 +305,9 @@ export const IMAGE_VARIANTS = {
   "focus": {
    "cx": 0.5,
    "top": 0.042,
-   "base": 0.958
+   "base": 0.958,
+   "left": 0.125,
+   "right": 0.875
   }
  },
  "assets/products/larrive/larrive-auren-campaign.webp": {
@@ -351,7 +346,9 @@ export const IMAGE_VARIANTS = {
   "focus": {
    "cx": 0.5,
    "top": 0.025,
-   "base": 0.975
+   "base": 0.975,
+   "left": 0.054,
+   "right": 0.946
   }
  },
  "assets/products/larrive/larrive-noir-campaign.webp": {
@@ -390,7 +387,9 @@ export const IMAGE_VARIANTS = {
   "focus": {
    "cx": 0.5,
    "top": 0.025,
-   "base": 0.975
+   "base": 0.975,
+   "left": 0.053,
+   "right": 0.947
   }
  },
  "assets/products/larrive/larrive-noir-cutout.webp": {
@@ -412,7 +411,9 @@ export const IMAGE_VARIANTS = {
   "focus": {
    "cx": 0.5,
    "top": 0.025,
-   "base": 0.975
+   "base": 0.975,
+   "left": 0.053,
+   "right": 0.947
   }
  },
  "assets/products/lotion/lotion-angle.webp": {
@@ -434,7 +435,9 @@ export const IMAGE_VARIANTS = {
   "focus": {
    "cx": 0.4,
    "top": 0.036,
-   "base": 0.949
+   "base": 0.949,
+   "left": 0.163,
+   "right": 0.637
   }
  },
  "assets/products/lotion/lotion-back.webp": {
@@ -456,7 +459,9 @@ export const IMAGE_VARIANTS = {
   "focus": {
    "cx": 0.501,
    "top": 0.037,
-   "base": 0.963
+   "base": 0.963,
+   "left": 0.086,
+   "right": 0.915
   }
  },
  "assets/products/lotion/lotion-box.webp": {
@@ -478,7 +483,9 @@ export const IMAGE_VARIANTS = {
   "focus": {
    "cx": 0.5,
    "top": 0.027,
-   "base": 0.973
+   "base": 0.973,
+   "left": 0.059,
+   "right": 0.941
   }
  },
  "assets/products/lotion/lotion-cutout.webp": {
@@ -500,7 +507,9 @@ export const IMAGE_VARIANTS = {
   "focus": {
    "cx": 0.5,
    "top": 0.037,
-   "base": 0.964
+   "base": 0.964,
+   "left": 0.089,
+   "right": 0.911
   }
  },
  "assets/products/lotion/lotion-front.webp": {
@@ -522,7 +531,9 @@ export const IMAGE_VARIANTS = {
   "focus": {
    "cx": 0.392,
    "top": 0.036,
-   "base": 0.947
+   "base": 0.947,
+   "left": 0.084,
+   "right": 0.7
   }
  },
  "assets/products/lotion/lotion-hero.webp": {
@@ -544,7 +555,9 @@ export const IMAGE_VARIANTS = {
   "focus": {
    "cx": 0.396,
    "top": 0.036,
-   "base": 0.948
+   "base": 0.948,
+   "left": 0.097,
+   "right": 0.695
   }
  },
  "assets/products/lotion/lotion-label.webp": {
@@ -566,7 +579,9 @@ export const IMAGE_VARIANTS = {
   "focus": {
    "cx": 0.5,
    "top": 0.0,
-   "base": 1.0
+   "base": 1.0,
+   "left": 0.031,
+   "right": 0.969
   }
  },
  "assets/products/lotion/lotion-pack.webp": {
@@ -588,7 +603,9 @@ export const IMAGE_VARIANTS = {
   "focus": {
    "cx": 0.5,
    "top": 0.026,
-   "base": 0.974
+   "base": 0.974,
+   "left": 0.035,
+   "right": 0.965
   }
  },
  "assets/products/lotion/lotion-tube.webp": {
@@ -610,29 +627,9 @@ export const IMAGE_VARIANTS = {
   "focus": {
    "cx": 0.5,
    "top": 0.028,
-   "base": 0.972
-  }
- },
- "assets/products/perfume-02/perfume-02-placeholder.webp": {
-  "w": 557,
-  "h": 1143,
-  "set": [
-   [
-    "assets/products/perfume-02/perfume-02-placeholder-600.webp",
-    292,
-    600
-   ],
-   [
-    "assets/products/perfume-02/perfume-02-placeholder-900.webp",
-    439,
-    900
-   ]
-  ],
-  "thumb": "assets/products/perfume-02/perfume-02-placeholder-thumb.webp",
-  "focus": {
-   "cx": 0.5,
-   "top": 0.037,
-   "base": 0.963
+   "base": 0.972,
+   "left": 0.072,
+   "right": 0.928
   }
  },
  "assets/rituals/ritual-01-cleanser.webp": {
@@ -685,22 +682,5 @@ export const IMAGE_VARIANTS = {
    ]
   ],
   "thumb": "assets/rituals/ritual-03-lotion-thumb.webp"
- },
- "assets/rituals/ritual-04-no2.webp": {
-  "w": 1536,
-  "h": 526,
-  "set": [
-   [
-    "assets/rituals/ritual-04-no2-768.webp",
-    768,
-    263
-   ],
-   [
-    "assets/rituals/ritual-04-no2-1200.webp",
-    1200,
-    411
-   ]
-  ],
-  "thumb": "assets/rituals/ritual-04-no2-thumb.webp"
  }
 };

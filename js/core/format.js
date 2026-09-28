@@ -84,20 +84,16 @@ const IMAGE_SIZES = [
   [/-label-hd\.webp$/, [1284, 2000]],
   [/ritual-01-cleanser\.webp$/, [1536, 582]],
   [/ritual-02-larrive\.webp$/, [1536, 570]],
-  [/ritual-04-no2\.webp$/, [1536, 526]],
   [/spin-hd\/[a-z]+\/\d{3}\.webp$/, [1200, 1800]],
   [/-hero\.webp$/, [1150, 2047]],
   [/-angle\.webp$/, [1150, 2062]],
   [/-back\.webp$/, [857, 2006]],
   [/(cleanser|lotion)-cutout\.webp$/, [836, 2014]],
-  [/perfume-02-placeholder\.webp$/, [557, 1143]],
   [/combo-skin-duo\.webp$/, [652, 1010]],
   [/combo-origin-arrival\.webp$/, [684, 980]],
   [/combo-complete-ritual\.webp$/, [895, 980]],
-  [/hero-origin\.webp$/, [436, 582]],
   [/category-combos\.webp$/, [1200, 760]],
   [/category-fragrance\.webp$/, [912, 570]],
-  [/category-new\.webp$/, [842, 526]],
   [/category-skin\.webp$/, [931, 582]],
   [/spin\/[a-z]+\/\d{3}\.webp$/, [720, 1080]],
 ];
@@ -115,7 +111,6 @@ export function imageSize(src = "") {
  */
 const IMAGE_FOCUS = [
   [/(cleanser|lotion)-(front|angle|hero)\.webp$/, { cx: 0.392, top: 0.036, base: 0.947 }],
-  [/perfume-02-placeholder\.webp$/, { cx: 0.5, top: 0.037, base: 0.963 }],
   [/combo-[a-z-]+\.webp$/, { cx: 0.5, top: 0.024, base: 0.968 }],
 ];
 export function imageFocus(src = "") {
@@ -135,8 +130,7 @@ export function imageFocus(src = "") {
 export const SIZES = {
   card: "(max-width: 767px) 43vw, (max-width: 1199px) 29vw, (max-width: 1439px) 22vw, 310px",
   pdp: "(max-width: 991px) 92vw, (max-width: 1279px) 42vw, 534px",
-  heroA: "(max-width: 991px) 74vw, (max-width: 1439px) 33vw, 480px",
-  heroB: "(max-width: 991px) 43vw, (max-width: 1439px) 19vw, 272px",
+  lineup: "(max-width: 991px) 24vw, (max-width: 1999px) 13vw, 250px",
   wide: "(max-width: 991px) 100vw, 60vw",
   tile: "(max-width: 767px) 92vw, 46vw",
   plinth: "(max-width: 767px) 34vw, 16vw",

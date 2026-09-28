@@ -106,25 +106,12 @@ export const PRODUCTS = [
               { src:"assets/rituals/ritual-02-larrive.webp", alt:"L’Arrivé still life", fit:"cover", focus:"73% 50%" } ],   // TODO(client): high-resolution perfume photography
     originId:"paris" },
 
-  { id:"perfume-no2", brand:"jiai-no2",
-    name:"Nº 2", fullName:"Nº 2 (name to be revealed)", benefit:"A new fragrance from Jiai Life",
-    category:"fragrance", subcategory:"perfume", ritual:"night", tags:["new"],
-    size:"TBC", price:999, mrp:null, priceNote:"placeholder", comingSoon:true,
-    cardScale:0.88,
-    rating:null,
-    description:"A new fragrance from Jiai Life. Its name, and its notes, arrive soon.",
-    details:[ ["Brand","Nº 2"], ["Status","Coming soon"],
-              ["Marketed by","Jiai Lifestyles Private Limited"], ["Customer care","+91 11 4039 3888"] ],
-    features:[],
-    images:{ hero:"assets/products/perfume-02/perfume-02-placeholder.webp", card:"assets/products/perfume-02/perfume-02-placeholder.webp" },
-    gallery:[ { src:"assets/products/perfume-02/perfume-02-placeholder.webp", alt:"Nº 2, a new fragrance (placeholder bottle)" },
-              { src:"assets/rituals/ritual-04-no2.webp", alt:"Nº 2 still life", fit:"cover", focus:"75% 50%" } ] },
 
   // Update 05: L'Arrivé Auren (the second L'Arrivé).
   // TODO(client): confirm it's a body spray, the size, the price and its notes.
   { id:"larrive-auren", brand:"larrive",
     name:"L’Arrivé Auren", fullName:"L’Arrivé Auren — Premium Body Spray for Men", line:"Une touche de Paris",
-    category:"fragrance", subcategory:"body-spray", ritual:"evening", tags:["new"],
+    category:"fragrance", subcategory:"body-spray", ritual:"night", tags:["new"],   // night: the place Nº 2 held (A day with Jiai, the Night filter)
     benefit:"A new fragrance from L’Arrivé. Une touche de Paris.", size:"150 ml",   // TODO(client): confirm
     price:899, mrp:null, priceNote:"placeholder",             // TODO(client): real price and MRP
     cardScale:0.9,
@@ -143,7 +130,7 @@ export const PRODUCTS = [
     originId:"paris" },
 
   // Update 03b: combos — curated sets of the pieces above, sold as one product at a set price.
-  // TODO(client): which combos to sell, their names and prices; add Nº 2 or L’Arrivé Auren if wanted.
+  // TODO(client): which combos to sell, their names and prices; add L’Arrivé Auren if wanted.
   { id:"combo-one-origin-duo", type:"combo", brand:"jiai-life", category:"combo", tags:["bestseller"],
     name:"The One Origin Duo", fullName:"The One Origin Duo — Face Cleanser + Body Lotion",
     benefit:"Face and body, from one single source",
