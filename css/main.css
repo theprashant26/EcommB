@@ -43,6 +43,10 @@
   --announce-h:36px;
   --header-h:76px;
   --top-h:calc(var(--announce-h) + var(--header-h));
+  /* the WhatsApp button: size and place (desktop values below) */
+  --wa-size:52px;
+  --wa-right:20px;
+  --wa-bottom:calc(88px + env(safe-area-inset-bottom, 0px));
 
   /* shadows: soft and warm, never hard grey */
   --shadow-soft:0 24px 48px -24px rgba(43,43,43,.18);
@@ -778,6 +782,31 @@ html.announce-off .announce{ display:none; }
 }
 .toast-msg.is-in{ opacity:1; transform:none; }
 
+/* ---------- 4.10b WhatsApp button ----------
+   Fixed bottom right, raised clear of the product page's buy bar (72px) and the toasts; under every overlay
+   (z-index below the buy bar, the dropdown veil, drawers, search and the lightbox) and hidden while one is open.
+   Fades in after the first paint; still with reduced motion; never printed. */
+@media (min-width:992px){ :root{ --wa-size:56px; --wa-right:32px; --wa-bottom:calc(96px + env(safe-area-inset-bottom, 0px)); } }
+.wa-float{
+  position:fixed; right:var(--wa-right); bottom:var(--wa-bottom); z-index:1015;
+  width:var(--wa-size); height:var(--wa-size); border-radius:50%;
+  display:grid; place-items:center;
+  background:#25D366; color:#fff; text-decoration:none;
+  box-shadow:var(--shadow-soft), 0 2px 8px rgba(43,43,43,.12);
+  transition:transform .35s var(--ease-settle), box-shadow .35s var(--ease-settle), opacity .25s linear, visibility .25s linear;
+  animation:wa-in .6s var(--ease-settle) .5s backwards;   /* backwards: after it, hover and hiding apply */
+}
+.wa-float svg{ width:calc(var(--wa-size) * .54); height:calc(var(--wa-size) * .54); display:block; }
+.wa-float:hover{ transform:translateY(-3px); box-shadow:0 28px 52px -22px rgba(43,43,43,.28), 0 4px 12px rgba(43,43,43,.14); }
+.wa-float:focus-visible{ border-radius:50%; outline-offset:4px; }
+.wa-float.is-yielding{ opacity:0; visibility:hidden; pointer-events:none; transition:none; }   /* a control is near it (js/core/wa-float.js): gone at once, fades back */
+@keyframes wa-in{ from{ opacity:0; transform:translateY(12px); } to{ opacity:1; transform:none; } }
+body:has(.offcanvas.show, .offcanvas.showing, .search-overlay:not([hidden]), .dd-veil:not([hidden]), .lb:not([hidden])) .wa-float{
+  opacity:0; visibility:hidden; pointer-events:none;
+}
+@media (prefers-reduced-motion:reduce){ .wa-float{ animation:none; transition:none; } .wa-float:hover{ transform:none; } }
+@media print{ .wa-float{ display:none !important; } }
+
 /* ---------- 4.11 Footer ---------- */
 
 .site-footer{
@@ -810,6 +839,15 @@ html.announce-off .announce{ display:none; }
 .footer-sign{ display:flex; align-items:center; gap:16px; font-size:14px; color:var(--zinc); }
 .footer-logo{ display:inline-block; padding:6px; line-height:0; color:inherit; text-decoration:none; }
 .footer-logo img{ width:150px; height:auto; }
+
+/* Social links (Instagram, Facebook) under Letters: 44px targets, the icon at the footer links' colour */
+.footer-col .footer-social{ list-style:none; margin:20px 0 0 -12px; padding:0; display:flex; gap:4px; }
+.social-link{ display:grid; place-items:center; width:44px; height:44px; border-radius:50%; color:var(--graphite); transition:color .25s linear; }
+.social-link:hover{ color:var(--black); }
+.social-link:focus-visible{ border-radius:50%; }
+.social-link .icon{ width:20px; height:20px; }
+/* The last row keeps a lane clear on the right for the WhatsApp button, so at the end of the page it covers nothing */
+.footer-bottom{ padding-right:max(0px, calc(var(--wa-right) + var(--wa-size) + 12px - var(--gutter))); }
 
 @media (max-width:991.98px){
   .footer-grid{ grid-template-columns:repeat(2, minmax(0, 1fr)); }
@@ -1282,6 +1320,11 @@ html.reveal-on [data-reveal]:not(.is-revealed) [data-reveal-inner]{ transform:sc
 .map-replay:hover{ border-color:var(--black); }
 .map-replay .icon{ width:16px; height:16px; }
 .map-replay[hidden]{ display:none; }
+/* Below 992px the button is in the flow above the map: it appears when the ~5.5s journey ends, often while the
+   visitor is already further down, so its line is held from the start (no shift). No journey, no button: reduced motion. */
+@media (max-width:991.98px) and (prefers-reduced-motion:no-preference){
+  .map-replay[hidden]{ display:inline-flex !important; visibility:hidden; }   /* !important: Bootstrap's [hidden] rule is */
+}
 .map-stage{ position:absolute; inset:0; perspective:1600px; display:grid; place-items:center; }
 .map-plane{
   position:relative;

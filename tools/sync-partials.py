@@ -8,6 +8,8 @@
 3. Write each page's <link rel="modulepreload"> list from its real import graph
    (between the MODULEPRELOAD markers in <head>), so the browser fetches every
    module at once instead of one import level per round trip.
+6. The social links (footer, mobile menu), the WhatsApp button's link and the Organization JSON-LD "sameAs"
+   in index.html, from CONFIG.social in js/data/config.js, before the partials are copied.
 5. faq.html: the FAQPage JSON-LD, from js/data/faq.js (evaluated with Node, so the answers
    carry the real CONFIG.delivery figures), between the FAQ JSON-LD markers.
 
@@ -28,12 +30,13 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parent.parent
 BRAND = ROOT / "assets" / "brand"
 SOURCE = ROOT / "index.html"
 PAGES = ["shop.html", "product.html", "brand.html", "origin.html", "about.html", "rituals.html", "wishlist.html", "combos.html", "faq.html"]
-NAMES = ["header", "footer", "bag", "search"]
+NAMES = ["header", "footer", "bag", "search", "whatsapp"]
 
 LOGO = re.compile(r"(<!-- LOGO:(inline|img) ([\w.-]+)([^>]*?)-->)(.*?)(<!-- /LOGO -->)", re.S)
 
@@ -289,6 +292,40 @@ def with_hero_images(page, html):
     return html
 
 
+def node_eval(js, *args):
+    node = shutil.which("node")
+    if not node:
+        sys.exit("sync-partials.py needs Node on the PATH (the FAQ JSON-LD and the social links read js/data/)")
+    out = subprocess.run([node, "--input-type=module", "-e", js, *args], capture_output=True, check=True)
+    return out.stdout.decode("utf-8")
+
+
+_social = None
+
+
+def social():
+    """CONFIG.social: the one place the Instagram, Facebook and WhatsApp details live."""
+    global _social
+    if _social is None:
+        _social = json.loads(node_eval("const { CONFIG } = await import(process.argv[1]); process.stdout.write(JSON.stringify(CONFIG.social));",
+                                       (ROOT / "js" / "data" / "config.js").as_uri()))
+    return _social
+
+
+SOCIAL_HREF = re.compile(r'href="[^"]*"(\s+data-social="(instagram|facebook|whatsapp)")')
+SAME_AS = re.compile(r'"sameAs": \[[^\]]*\]')
+
+
+def with_social(html):
+    """Every data-social link's href, and the Organization's "sameAs" (a Facebook share shortlink is left out)."""
+    s = social()
+    urls = {"instagram": s["instagram"], "facebook": s["facebook"],
+            "whatsapp": f"https://wa.me/{s['whatsapp']}?text={quote(s['whatsappText'], safe='')}"}
+    html = SOCIAL_HREF.sub(lambda m: f'href="{urls[m.group(2)]}"{m.group(1)}', html)
+    same = [s["instagram"]] + ([s["facebook"]] if "/share/" not in s["facebook"] else [])
+    return SAME_AS.sub(lambda _m: '"sameAs": ' + json.dumps(same), html)
+
+
 FAQ_LD = re.compile(r"(<!-- FAQ JSON-LD START[^>]*-->).*?(<!-- FAQ JSON-LD END -->)", re.S)
 FAQ_JS = r"""
 const { FAQ } = await import(process.argv[1]);
@@ -303,12 +340,7 @@ def faq_ld():
     """The FAQPage JSON-LD for js/data/faq.js, as the page states it (every question, its answer)."""
     global _faq_ld
     if _faq_ld is None:
-        node = shutil.which("node")
-        if not node:
-            sys.exit("sync-partials.py: faq.html's JSON-LD needs Node on the PATH")
-        url = (ROOT / "js" / "data" / "faq.js").as_uri()
-        out = subprocess.run([node, "--input-type=module", "-e", FAQ_JS, url], capture_output=True, check=True)
-        _faq_ld = out.stdout.decode("utf-8").replace("</", r"<\/")   # never closes the script early
+        _faq_ld = node_eval(FAQ_JS, (ROOT / "js" / "data" / "faq.js").as_uri()).replace("</", r"<\/")   # never closes the script early
     return _faq_ld
 
 
@@ -329,9 +361,10 @@ def main():
         print("logo files not in assets/brand yet (interim kept):", ", ".join(sorted(set(missing))))
     filled = with_preloads("index.html", filled)
     filled = with_hero_images("index.html", filled)
+    filled = with_social(filled)
     if filled != src:
         if check:
-            print("drift: index.html (logo slots or module preloads)")
+            print("drift: index.html (logo slots, module preloads or social links)")
         else:
             SOURCE.write_text(filled, encoding="utf-8", newline="\n")
             print("updated index.html (logo slots / module preloads)")

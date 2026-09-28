@@ -15,6 +15,7 @@ import { esc, formatCoords, icon, $, $$, hasGSAP, reducedMotion, thumbOf, srcset
 import { toast } from "./toast.js";
 import { scrollToHash } from "./motion.js";
 import { initViewTransitions } from "./transitions.js";
+import { initWaFloat } from "./wa-float.js";
 
 const ANNOUNCE_KEY = "jiai-announce-v1";
 
@@ -24,6 +25,7 @@ export function initHeader() {
   initDropdowns();     // panels render on first open
   initMobileMenu();    // groups render on first show
   markCurrentNav();
+  initWaFloat();       // the WhatsApp button steps aside for controls under it
   // Footer lists: when the footer nears the screen, or once the browser is idle (so a fast
   // keyboard user never tabs past links that do not exist yet).
   let footerDone = false;
