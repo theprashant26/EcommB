@@ -348,6 +348,22 @@ site:
 - Lighthouse after this update (mobile, live, median of 3): Home **98** · Shop **100** · Product (Body Lotion)
   **100**; CLS 0; the largest paint is still the hero / product image on each.
 
+### Home: the desktop hero no longer shifts on load
+
+- **What:** on a fast connection with a slow processor, Home's first frame was sometimes painted while the page
+  was still being parsed (PAGE BOOT lets nothing block rendering). The hero shows its grid centred, so a
+  half-parsed hero grew and moved (up to 0.13 at 1280–1440px, 1–3 loads in 60); the header's right-aligned
+  tools moved left the same way (≤0.0002). The CSS was never at fault.
+- **Fix:** `<link rel="expect" href="#categories" blocking="render">` in `index.html`: the first paint waits until
+  the header and the whole hero are parsed (up to the next section). It waits for parsing only, no download:
+  about +50 ms to the first paint on a slow desktop processor and a fast connection, nothing measurable on Slow
+  4G or on phones. Browsers without it (Safari, Firefox) are unaffected. Keep `#categories` as the section after
+  the hero, or point the link at whatever follows it.
+- **Proof:** 240 loads (1280, 1440, 1920 and 412px; unthrottled, 4× CPU, and Slow 4G + 4× CPU; 20 each): CLS 0 on
+  every one (before: 1–3 of 60 shifted at 4× CPU). The loaded first screen is pixel-identical at 390 and 1440px.
+- **Elsewhere:** Product and Combos: 0 in 60 loads each. Shop shows the same pattern, much smaller (its sort row,
+  ≤0.0007, 5 of 20 loads at 4× CPU); the same one-line link would fix it. Not changed yet.
+
 ## How it was tested
 
 Automated in Chrome and WebKit (Playwright), on a local server with gzip as on Bluehost:
