@@ -363,6 +363,8 @@ site:
   every one (before: 1–3 of 60 shifted at 4× CPU). The loaded first screen is pixel-identical at 390 and 1440px.
 - **Elsewhere:** Product and Combos: 0 in 60 loads each. Shop shows the same pattern, much smaller (its sort row,
   ≤0.0007, 5 of 20 loads at 4× CPU); the same one-line link would fix it. Not changed yet.
+- Lighthouse, live Home: mobile **97** (median of 3: 97 / 99 / 96; the previous round 97 / 99 / 98), CLS 0;
+  desktop (`--preset=desktop`) **100**, LCP 0.4 s, CLS 0.
 
 ## How it was tested
 
