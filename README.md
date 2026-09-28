@@ -63,7 +63,8 @@ route, journey and facts. An unknown code shows a notice and a field to type the
 
 ## Shared markup and the generated parts
 
-The header, footer, bag and search markup is identical on every page, between `<!-- PARTIAL:… START/END -->`.
+The header, footer, bag, search and WhatsApp-button markup is identical on every page, between
+`<!-- PARTIAL:… START/END -->`.
 Edit it in `index.html`, then run:
 
 ```
@@ -73,6 +74,11 @@ python tools/sync-partials.py --check  # report drift without writing
 
 The same script fills the logo slots and regenerates each page's `<link rel="modulepreload">` list (between the
 MODULEPRELOAD markers) from its real import graph. Run it after adding or removing a JS import.
+
+**Social links and WhatsApp:** the Instagram and Facebook URLs, the WhatsApp number and its greeting live in one
+place, `CONFIG.social` in `js/data/config.js`. The build writes them into the footer, the mobile menu, the WhatsApp
+button and the Organization JSON-LD `sameAs` (a Facebook share shortlink is kept out of `sameAs`). Change the value
+there, then `npm run build`.
 
 ### Build (Update 04: speed)
 
@@ -318,6 +324,30 @@ site:
 - [x] **Cleanups:** Auren's benefit ends with a full stop; the old `larrive-02` comment is gone; the Face Cleanser
   description is marked `TODO(client)` (the copy predates the orange peel & sea-buckthorn packaging).
 
+### Update 06 (social links, WhatsApp, a Home layout shift)
+
+- [x] **Instagram and Facebook:** icon links under Letters in the footer and in the mobile menu's bottom links (with
+  their names), from `CONFIG.social`. The glyphs are the brands' official shapes (Simple Icons, CC0), one colour,
+  in `assets/icons/icons.svg` (`i-instagram`, `i-facebook`). New tab, `rel="noopener"`, "Jiai Life on Instagram
+  (opens in a new tab)", 44px targets, the red focus ring. No third-party scripts or embeds. The Organization
+  JSON-LD lists Instagram in `sameAs`; Facebook joins once its canonical page URL replaces the share shortlink.
+- [x] **WhatsApp button on every page:** a green circle (52px, 56px from 992px) with the official glyph in white,
+  fixed bottom right (20px / 32px in, 88px / 96px up, plus the safe area), inline in the page (no image or script
+  request). It opens `wa.me/<number>` with "Hi Jiai Life, I have a question." in a new tab.
+  - Clear of the product page's buy bar and the toasts by its position; the footer's last row keeps a lane free
+    for it, so at the end of a page it covers nothing.
+  - Under every overlay, and hidden while the cart, the mobile menu, search, a dropdown or the lightbox is open.
+  - When a control scrolls or is pinned under it (the House arrows, the turn controls, a sample-ratings note, the
+    map's Replay), it fades out until the control has moved on (`js/core/wa-float.js`; checked on scroll only).
+  - The last stop in the tab order; fades and rises in after the first paint (still with reduced motion); not printed.
+    It is never the page's largest paint and takes no space in the page (no layout shift).
+- [x] **Home layout shift on scroll (phones and tablets):** the map's "Replay the journey" button sits in the flow
+  above the map below 992px and appeared when the ~5.5s journey finished, often while the visitor was already
+  further down, pushing everything below it 52px. Its line is now held from the start (it only becomes visible), so nothing
+  moves. With reduced motion there's no journey and no button, and no space is held.
+- Lighthouse after this update (mobile, live, median of 3): Home **98** · Shop **100** · Product (Body Lotion)
+  **100**; CLS 0; the largest paint is still the hero / product image on each.
+
 ## How it was tested
 
 Automated in Chrome and WebKit (Playwright), on a local server with gzip as on Bluehost:
@@ -400,6 +430,8 @@ What keeps it fast (keep these in place):
 | Help pages: delivery, returns, contact, privacy (footer links are `#`) | footer partial in `index.html`, then sync |
 | Absolute URLs for `og:image` / `og:url` and the Organization logo, once the domain is live | `<head>` of every page |
 | Whether to show the teaser brands (Black Truth, White Lie) | `js/data/config.js` (`showComingBrands`) |
+| Facebook: the canonical page URL (the current link is a share shortlink); it then also goes into the Organization JSON-LD `sameAs` | `js/data/config.js` (`social.facebook`), then `npm run build` |
+| WhatsApp: confirm the number (the customer-care line stands in) and the greeting | `js/data/config.js` (`social.whatsapp`, `social.whatsappText`), then `npm run build` |
 
 ## At launch (integrations stubbed in the front end)
 
